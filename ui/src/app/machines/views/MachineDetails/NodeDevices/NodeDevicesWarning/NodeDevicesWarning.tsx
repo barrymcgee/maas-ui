@@ -1,7 +1,6 @@
 import { Button, Col, Icon, Row, Strip } from "@canonical/react-components";
 
-import type { SetSelectedAction } from "../../types";
-
+import type { MachineSetSelectedAction } from "app/machines/views/types";
 import type { MachineDetails } from "app/store/machine/types";
 import { NodeDeviceBus } from "app/store/nodedevice/types";
 import type { NodeDevice } from "app/store/nodedevice/types";
@@ -11,7 +10,7 @@ type Props = {
   bus: NodeDeviceBus;
   machine: MachineDetails;
   nodeDevices: NodeDevice[];
-  setSelectedAction: SetSelectedAction;
+  setSelectedAction: MachineSetSelectedAction;
 };
 
 const NodeDevicesWarning = ({
@@ -49,7 +48,7 @@ const NodeDevicesWarning = ({
     }
     warning = (
       <>
-        <h4>{busDisplay} information not available</h4>
+        <h4>No {busDisplay} information</h4>
         <p className="u-sv1" data-test="no-devices">
           {warningMessage}
         </p>
@@ -67,7 +66,7 @@ const NodeDevicesWarning = ({
   } else if (bus === NodeDeviceBus.USB && noUSB) {
     warning = (
       <>
-        <h4>USB information not available</h4>
+        <h4>No USB information</h4>
         <p className="u-sv1" data-test="no-usb">
           No USB devices discovered during commissioning.
         </p>

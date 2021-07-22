@@ -9,8 +9,8 @@ import type { AuthenticateFormValues } from "../AddLxd";
 
 import SelectProjectFormFields from "./SelectProjectFormFields";
 
-import FormCardButtons from "app/base/components/FormCardButtons";
 import FormikForm from "app/base/components/FormikForm";
+import kvmURLs from "app/kvm/urls";
 import { actions as podActions } from "app/store/pod";
 import podSelectors from "app/store/pod/selectors";
 import { PodType } from "app/store/pod/types";
@@ -69,20 +69,19 @@ export const SelectProjectForm = ({ authValues }: Props): JSX.Element => {
 
   return (
     <FormikForm<SelectProjectFormValues>
-      buttons={FormCardButtons}
       cleanup={cleanup}
       errors={errors}
       initialValues={{
         existingProject: "",
         newProject: "",
       }}
-      onCancel={() => history.push({ pathname: "/kvm" })}
+      onCancel={() => history.push({ pathname: kvmURLs.kvm })}
       onSaveAnalytics={{
         action: "Save LXD KVM",
         category: "Add KVM form",
         label: "Save KVM",
       }}
-      onSubmit={(values: SelectProjectFormValues) => {
+      onSubmit={(values) => {
         dispatch(cleanup());
         const params = {
           name: authValues.name,
@@ -96,7 +95,7 @@ export const SelectProjectForm = ({ authValues }: Props): JSX.Element => {
         dispatch(podActions.create(params));
       }}
       saved={saved}
-      savedRedirect={newPod ? `/kvm/${newPod.id}` : "/kvm"}
+      savedRedirect={newPod ? kvmURLs.details({ id: newPod.id }) : kvmURLs.kvm}
       saving={saving}
       submitLabel="Next"
       validationSchema={SelectProjectSchema}

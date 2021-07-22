@@ -1,34 +1,31 @@
-import type { PayloadAction, SliceCaseReducers } from "@reduxjs/toolkit";
+import type { PayloadAction } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 
-import { generateSlice } from "../utils";
-
-import type { LicenseKeys, LicenseKeysState } from "./types";
-
-import type { GenericSlice } from "app/store/utils";
-
-type LicenseKeysReducers = SliceCaseReducers<LicenseKeysState>;
-
-export type LicenseKeysSlice = GenericSlice<
+import { LicenseKeysMeta } from "./types";
+import type {
+  CreateParams,
+  LicenseKeys,
   LicenseKeysState,
-  LicenseKeys,
-  LicenseKeysReducers
->;
+  UpdateParams,
+} from "./types";
 
-const licenseKeysSlice = generateSlice<
-  LicenseKeys,
-  LicenseKeysState["errors"],
-  LicenseKeysReducers,
-  "id"
->({
-  indexKey: "id",
-  name: "licensekeys",
+import {
+  generateCommonReducers,
+  genericInitialState,
+} from "app/store/utils/slice";
+
+const licenseKeysSlice = createSlice({
+  name: LicenseKeysMeta.MODEL,
+  initialState: genericInitialState as LicenseKeysState,
   reducers: {
+    ...generateCommonReducers<
+      LicenseKeysState,
+      LicenseKeysMeta.PK,
+      CreateParams,
+      UpdateParams
+    >(LicenseKeysMeta.MODEL, LicenseKeysMeta.PK),
     create: {
-      prepare: (params: {
-        osystem: LicenseKeys["osystem"];
-        distro_series: LicenseKeys["distro_series"];
-        license_key: LicenseKeys["license_key"];
-      }) => ({
+      prepare: (params: CreateParams) => ({
         payload: params,
       }),
       reducer: () => {
@@ -74,11 +71,7 @@ const licenseKeysSlice = generateSlice<
       },
     },
     update: {
-      prepare: (params: {
-        osystem: LicenseKeys["osystem"];
-        distro_series: LicenseKeys["distro_series"];
-        license_key: LicenseKeys["license_key"];
-      }) => ({
+      prepare: (params: UpdateParams) => ({
         payload: params,
       }),
       reducer: () => {
@@ -97,7 +90,7 @@ const licenseKeysSlice = generateSlice<
       state.items[updateIndex] = action.payload;
     },
   },
-}) as LicenseKeysSlice;
+});
 
 export const { actions } = licenseKeysSlice;
 

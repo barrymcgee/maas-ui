@@ -149,10 +149,29 @@ function NodesListController(
   // this scope.
   $scope.addDeviceScope = null;
 
+  // Whether the search string includes the 'selected' filter.
+  function searchHasSelected(query) {
+    var search = query.toLowerCase();
+    return search.includes("in:(selected)") || search.includes("in:selected");
+  }
+
+  // Remove the 'selected' filter from the search string.
+  function removeSelected(search) {
+    return search
+      .split(" ")
+      .reduce((cleaned, part) => {
+        const partLower = part.toLowerCase();
+        if (partLower !== "in:(selected)" && partLower !== "in:selected") {
+          cleaned.push(part);
+        }
+        return cleaned;
+      }, [])
+      .join(" ");
+  }
+
   // Return true if the tab is in viewing selected mode.
   function isViewingSelected(tab) {
-    var search = $scope.tabs[tab].search.toLowerCase();
-    return search === "in:(selected)" || search === "in:selected";
+    return searchHasSelected($scope.tabs[tab].search);
   }
 
   // Sets the search bar to only show selected.
@@ -164,7 +183,10 @@ function NodesListController(
   // Clear search bar from viewing selected.
   function leaveViewSelected(tab) {
     if (isViewingSelected(tab)) {
-      $scope.tabs[tab].search = $scope.tabs[tab].previous_search;
+      // Clean the 'selected' filter from the previous search otherwise it'll
+      // cause an infinite loop trying to remove the selected string.
+      const previousSearch = removeSelected($scope.tabs[tab].previous_search);
+      $scope.tabs[tab].search = previousSearch;
       $scope.updateFilters(tab);
     }
   }
@@ -567,6 +589,18 @@ function NodesListController(
     }
   };
 
+  // Whether the action menu submit button should be disabled.
+  $scope.actionSubmitDisabled = function (tab) {
+    const actionOption = $scope.tabs[tab].actionOption;
+    if (!actionOption) {
+      return true;
+    }
+    return (
+      (actionOption.name === "tag" && $scope.tags.length <= 0) ||
+      (actionOption.name === "set-zone" && !$scope.tabs[tab].zoneSelection)
+    );
+  };
+
   // Return True if there is an action error.
   $scope.isActionError = function (tab) {
     return $scope.tabs[tab].actionErrorCount !== 0;
@@ -851,6 +885,53 @@ function NodesListController(
     }
   };
 
+  // Get the controller version info in a template safe way.
+  $scope.getVersions = function (controller) {
+    const versions = controller.versions || {};
+    let cohortKey = null;
+    if (versions.snap_cohort) {
+      // Format the key into lines of 41 characters so that it can be displayed
+      // nicely in the tooltip.
+      const chunks = versions.snap_cohort.match(/.{1,41}/g) || [];
+      cohortKey = chunks.map((chunk) => chunk.trim()).join(" \n");
+    }
+    // Map the issue id to the type of issue.
+    const issues = (versions.issues || []).map((issue) =>
+      issue.replace("different-", "")
+    );
+    return {
+      origin: versions.origin || null,
+      cohortTooltip: cohortKey ? `Cohort key: \n${cohortKey}` : null,
+      current: (versions.current && versions.current.version) || null,
+      isDeb: versions.install_type === "deb",
+      issue: issues.length
+        ? `Different ${issues.join(" and ")} detected.`
+        : null,
+      upgrade: versions.up_to_date
+        ? "Up-to-date"
+        : (versions.update && versions.update.version) || null,
+    };
+  };
+
+  // Get the HA VLAN info for a controller.
+  $scope.getHaVlans = function (controller) {
+    const vlansHA = controller.vlans_ha || {};
+    return (
+      [
+        vlansHA.false && `Non-HA(${vlansHA.false})`,
+        vlansHA.true && `HA(${vlansHA.true})`,
+      ]
+        .filter(Boolean)
+        .join(", ") || null
+    );
+  };
+
+  // Get the number of VLANs for a controller.
+  $scope.getVlanCount = function (controller) {
+    const vlansHA = controller.vlans_ha || {};
+    return (vlansHA.false || 0) + (vlansHA.true || 0)
+  };
+
   // Switch to the specified tab, if specified.
   angular.forEach(["devices", "controllers"], function (node_type) {
     if ($location.path().indexOf("/" + node_type) !== -1) {
@@ -884,13 +965,6 @@ function NodesListController(
     ])
   ).then(function () {
     $scope.loading = false;
-
-    // Set flag for RSD navigation item.
-    if (!$rootScope.showRSDLink) {
-      GeneralManager.getNavigationOptions().then(
-        (res) => ($rootScope.showRSDLink = res.rsd)
-      );
-    }
   });
 
   // Stop polling and save the current filter when the scope is destroyed.

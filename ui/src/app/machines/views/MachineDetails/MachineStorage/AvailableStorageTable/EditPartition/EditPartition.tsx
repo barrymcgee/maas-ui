@@ -3,12 +3,12 @@ import * as Yup from "yup";
 
 import EditPartitionFields from "./EditPartitionFields";
 
-import FormCardButtons from "app/base/components/FormCardButtons";
 import FormikForm from "app/base/components/FormikForm";
 import { useMachineDetailsForm } from "app/machines/hooks";
 import { actions as machineActions } from "app/store/machine";
 import machineSelectors from "app/store/machine/selectors";
 import type { Disk, Machine, Partition } from "app/store/machine/types";
+import { isMachineDetails } from "app/store/machine/utils";
 import type { RootState } from "app/store/root/types";
 
 export type EditPartitionValues = {
@@ -50,12 +50,11 @@ export const EditPartition = ({
     machineSelectors.getById(state, systemId)
   );
 
-  if (machine && "disks" in machine) {
+  if (isMachineDetails(machine)) {
     const fs = partition.filesystem;
 
     return (
-      <FormikForm
-        buttons={FormCardButtons}
+      <FormikForm<EditPartitionValues>
         cleanup={machineActions.cleanup}
         errors={errors}
         initialValues={{
@@ -69,7 +68,7 @@ export const EditPartition = ({
           category: "Machine storage",
           label: "Save",
         }}
-        onSubmit={(values: EditPartitionValues) => {
+        onSubmit={(values) => {
           const { fstype, mountOptions, mountPoint } = values;
           const params = {
             blockId: disk.id,

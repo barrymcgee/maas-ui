@@ -136,7 +136,7 @@
       content: "";
       left: 0;
       position: absolute;
-      top: #{$sp-unit / 2};
+      top: #{math.div($sp-unit, 2)};
     }
   }
 
@@ -165,6 +165,19 @@
       @extend %small-text;
       margin-bottom: map-get($line-heights, default-text) -
         map-get($line-heights, small) - map-get($nudges, nudge--small);
+    }
+  }
+
+  .p-table__row--interactive {
+    background-color: $color-x-light;
+
+    &:hover {
+      background-color: $color-light;
+      cursor: pointer;
+    }
+
+    &.is-active:hover {
+      background-color: transparentize($color-link, 0.85);
     }
   }
 }

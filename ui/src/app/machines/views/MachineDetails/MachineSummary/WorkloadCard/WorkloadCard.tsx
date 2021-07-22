@@ -10,9 +10,10 @@ import { Link as RouterLink } from "react-router-dom";
 
 import LabelledList from "app/base/components/LabelledList";
 import { useSendAnalytics } from "app/base/hooks";
-import { filtersToQueryString } from "app/machines/search";
+import machineURLs from "app/machines/urls";
 import machineSelectors from "app/store/machine/selectors";
 import type { Machine } from "app/store/machine/types";
+import { FilterMachines, isMachineDetails } from "app/store/machine/utils";
 import type { RootState } from "app/store/root/types";
 
 type Props = {
@@ -26,10 +27,10 @@ const WorkloadCard = ({ id }: Props): JSX.Element => {
   const sendAnalytics = useSendAnalytics();
   let content: JSX.Element;
 
-  if (machine && "workload_annotations" in machine) {
-    const workloads = Object.entries(
-      machine.workload_annotations || {}
-    ).sort((a, b) => a[0].localeCompare(b[0]));
+  if (isMachineDetails(machine)) {
+    const workloads = Object.entries(machine.workload_annotations || {}).sort(
+      (a, b) => a[0].localeCompare(b[0])
+    );
 
     if (workloads.length > 0) {
       content = (
@@ -43,12 +44,16 @@ const WorkloadCard = ({ id }: Props): JSX.Element => {
               value: (
                 <div data-test="workload-value" key={key}>
                   {separatedValue.map((val) => {
-                    const filter = filtersToQueryString({
+                    const filter = FilterMachines.filtersToQueryString({
                       [`workload-${key}`]: [`${val}`],
                     });
                     return (
                       <div key={`${key}-${val}`}>
-                        <RouterLink to={`/machines${filter}`}>{val}</RouterLink>
+                        <RouterLink
+                          to={`${machineURLs.machines.index}${filter}`}
+                        >
+                          {val}
+                        </RouterLink>
                       </div>
                     );
                   })}
@@ -61,7 +66,7 @@ const WorkloadCard = ({ id }: Props): JSX.Element => {
     } else {
       content = (
         <div data-test="no-workload-annotations">
-          <h4>Workload information not available</h4>
+          <h4>No workload information</h4>
         </div>
       );
     }

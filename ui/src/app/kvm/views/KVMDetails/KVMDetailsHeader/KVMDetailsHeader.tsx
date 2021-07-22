@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router";
 import { Link, useLocation } from "react-router-dom";
 
-import type { SelectedAction, SetSelectedAction } from "../KVMDetails";
+import type { KVMSelectedAction, KVMSetSelectedAction } from "../KVMDetails";
 
 import SectionHeader from "app/base/components/SectionHeader";
 import type { RouteParams } from "app/base/types";
@@ -18,8 +18,8 @@ import { PodType } from "app/store/pod/types";
 import type { RootState } from "app/store/root/types";
 
 type Props = {
-  selectedAction: SelectedAction;
-  setSelectedAction: SetSelectedAction;
+  selectedAction: KVMSelectedAction | null;
+  setSelectedAction: KVMSetSelectedAction;
 };
 
 const KVMDetailsHeader = ({
@@ -34,6 +34,7 @@ const KVMDetailsHeader = ({
   );
   const pathname = location.pathname;
   const previousPathname = usePrevious(pathname);
+  const vmCount = pod?.resources?.vm_count?.tracked || 0;
 
   useEffect(() => {
     dispatch(podActions.fetch());
@@ -67,9 +68,7 @@ const KVMDetailsHeader = ({
         )) ||
         undefined
       }
-      subtitle={`${pod?.composed_machines_count || 0} VM${
-        pod?.composed_machines_count === 1 ? "" : "s"
-      } available`}
+      subtitle={`${vmCount} VM${vmCount === 1 ? "" : "s"} available`}
       tabLinks={[
         ...(pod?.type === PodType.LXD
           ? [

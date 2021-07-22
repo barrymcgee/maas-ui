@@ -42,7 +42,7 @@ const generateWrapper = (store: MockStore, pod: Pod) =>
         <Route
           exact
           path="/kvm/:id"
-          component={() => <ComposeForm setSelectedAction={jest.fn()} />}
+          component={() => <ComposeForm clearSelectedAction={jest.fn()} />}
         />
       </MemoryRouter>
     </Provider>
@@ -193,9 +193,9 @@ describe("StorageTable", () => {
         } as React.ChangeEvent<HTMLSelectElement>);
     });
     wrapper.update();
-    expect(wrapper.find(".p-form-validation__message").text()).toBe(
-      `Error: Only 20GB available in ${pool.name}.`
-    );
+    expect(
+      wrapper.find("StorageTable .p-form-validation__message").text()
+    ).toBe(`Error: Only 20GB available in ${pool.name}.`);
   });
 
   it(`displays an error message if the sum of disk sizes from a pool is higher
@@ -241,9 +241,9 @@ describe("StorageTable", () => {
     wrapper.update();
 
     // Each is lower than 25GB, but the sum is higher, so an error should show
-    expect(wrapper.find(".p-form-validation__message").text()).toBe(
-      `Error: Only 25GB available in ${pool.name}.`
-    );
+    expect(
+      wrapper.find("StorageTable .p-form-validation__message").text()
+    ).toBe(`Error: Only 25GB available in ${pool.name}.`);
   });
 
   it("displays an error message on render if not enough space", async () => {

@@ -17,12 +17,18 @@ import { actions as messageActions } from "app/store/message";
 import type { RootState } from "app/store/root/types";
 import { kebabToCamelCase } from "app/utils";
 
+declare global {
+  interface Window {
+    ga: (...args: unknown[]) => void;
+  }
+}
+
 /**
  * Combines formik validation errors and errors returned from server
  * for use in formik forms.
  * @param errors - The errors object in redux state.
  */
-export const useFormikErrors = (errors: TSFixMe): void => {
+export const useFormikErrors = (errors?: TSFixMe): void => {
   const { setFieldError, setFieldTouched, values } = useFormikContext();
   const previousErrors = usePrevious(errors);
   useEffect(() => {
@@ -102,7 +108,7 @@ export const useAddMessage = (
   addCondition: boolean,
   cleanup: () => { type: string },
   message: string,
-  onMessageAdded: () => void,
+  onMessageAdded?: () => void,
   messageType: notificationTypes = notificationTypes.INFORMATION
 ): void => {
   const dispatch = useDispatch();
@@ -173,7 +179,7 @@ export const useSendAnalytics = (): SendAnalytics => {
  * @param eventLabel - The analytics label.
  */
 export const useSendAnalyticsWhen = (
-  sendCondition: boolean,
+  sendCondition?: boolean,
   eventCategory?: string,
   eventAction?: string,
   eventLabel?: string
@@ -220,7 +226,14 @@ export const useMachineActions = (
           children: actionLabel,
           onClick: () => {
             const actionMethod = kebabToCamelCase(action);
-            dispatch(machineActions[actionMethod](systemId));
+            // Find the method for the function.
+            const [, actionFunction] =
+              Object.entries(machineActions).find(
+                ([key]) => key === actionMethod
+              ) || [];
+            if (actionFunction) {
+              dispatch(actionFunction(systemId));
+            }
             onClick && onClick();
           },
         });
@@ -278,16 +291,26 @@ export const useTrackById = <T>(): {
  * @param value - The value to check.
  * @param onCycled - The function to call when the value changes from false to true.
  */
-const useCycled = (value: boolean, onCycled: () => void) => {
+export const useCycled = (
+  value: boolean,
+  onCycled?: () => void
+): [boolean, () => void] => {
   const previousValue = useRef(value);
+  const [hasCycled, setHasCycled] = useState(false);
   useEffect(() => {
     if (value && !previousValue.current) {
-      onCycled();
+      onCycled && onCycled();
+      setHasCycled(true);
     }
     if (previousValue.current !== value) {
       previousValue.current = value;
     }
   }, [value, onCycled]);
+  const resetHasCycled = useCallback(() => {
+    setHasCycled(false);
+    previousValue.current = false;
+  }, [setHasCycled]);
+  return [hasCycled, resetHasCycled];
 };
 
 /**
@@ -416,10 +439,8 @@ export const useScrollOnRender = <T extends HTMLElement>(): ((
   const htmlRef = useRef<HTMLElement>(document.querySelector("html"));
   const onRenderRef = useCallback((targetNode) => {
     if (targetNode && htmlRef?.current) {
-      const {
-        height: targetHeight,
-        y: targetTop,
-      } = targetNode.getBoundingClientRect();
+      const { height: targetHeight, y: targetTop } =
+        targetNode.getBoundingClientRect();
       const windowTop = htmlRef.current.scrollTop;
       const windowBottom = windowTop + window.innerHeight;
       const targetBottom = targetTop + targetHeight;

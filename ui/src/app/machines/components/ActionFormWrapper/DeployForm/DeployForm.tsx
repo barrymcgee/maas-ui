@@ -8,13 +8,13 @@ import DeployFormFields from "./DeployFormFields";
 
 import ActionForm from "app/base/components/ActionForm";
 import { useSendAnalytics } from "app/base/hooks";
+import type { ClearSelectedAction } from "app/base/types";
 import { useMachineActionForm } from "app/machines/hooks";
 import { actions as generalActions } from "app/store/general";
 import {
   defaultMinHweKernel as defaultMinHweKernelSelectors,
   osInfo as osInfoSelectors,
 } from "app/store/general/selectors";
-import type { MachineAction } from "app/store/general/types";
 import { actions as machineActions } from "app/store/machine";
 import machineSelectors from "app/store/machine/selectors";
 import { PodType } from "app/store/pod/types";
@@ -39,15 +39,12 @@ export type DeployFormValues = {
 
 type Props = {
   actionDisabled?: boolean;
-  setSelectedAction: (
-    action?: MachineAction | null,
-    deselect?: boolean
-  ) => void;
+  clearSelectedAction: ClearSelectedAction;
 };
 
 export const DeployForm = ({
   actionDisabled,
-  setSelectedAction,
+  clearSelectedAction,
 }: Props): JSX.Element => {
   const dispatch = useDispatch();
   const activeMachine = useSelector(machineSelectors.active);
@@ -87,19 +84,19 @@ export const DeployForm = ({
   }
 
   return (
-    <ActionForm
+    <ActionForm<DeployFormValues>
       actionDisabled={actionDisabled}
       actionName={NodeActions.DEPLOY}
       allowUnchanged={osystems?.length !== 0 && releases?.length !== 0}
       cleanup={machineActions.cleanup}
-      clearSelectedAction={() => setSelectedAction(null, true)}
+      clearSelectedAction={clearSelectedAction}
       errors={errors}
       initialValues={{
         oSystem: initialOS,
         release: initialRelease,
         kernel: defaultMinHweKernel || "",
         includeUserData: false,
-        installKVM: false,
+        userData: "",
         vmHostType: "",
       }}
       loaded={defaultMinHweKernelLoaded && osInfoLoaded}
@@ -109,7 +106,7 @@ export const DeployForm = ({
         category: `Machine ${activeMachine ? "details" : "list"} action form`,
         label: "Deploy",
       }}
-      onSubmit={(values: DeployFormValues) => {
+      onSubmit={(values) => {
         const hasUserData =
           values.includeUserData && values.userData && values.userData !== "";
         const extra = {
@@ -128,7 +125,9 @@ export const DeployForm = ({
           );
         }
         machinesToAction.forEach((machine) => {
-          dispatch(machineActions.deploy(machine.system_id, extra));
+          dispatch(
+            machineActions.deploy({ systemId: machine.system_id, extra })
+          );
         });
       }}
       processingCount={processingCount}
@@ -141,7 +140,7 @@ export const DeployForm = ({
 };
 
 DeployForm.propTypes = {
-  setSelectedAction: PropTypes.func.isRequired,
+  clearSelectedAction: PropTypes.func.isRequired,
 };
 
 export default DeployForm;

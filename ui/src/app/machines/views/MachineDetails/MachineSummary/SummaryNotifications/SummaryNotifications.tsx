@@ -4,6 +4,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 
 import LegacyLink from "app/base/components/LegacyLink";
+import baseURLs from "app/base/urls";
+import machineURLs from "app/machines/urls";
 import MachineNotifications from "app/machines/views/MachineDetails/MachineNotifications";
 import { actions as generalActions } from "app/store/general";
 import { architectures as architecturesSelectors } from "app/store/general/selectors";
@@ -11,6 +13,7 @@ import machineSelectors from "app/store/machine/selectors";
 import type { MachineEvent, Machine } from "app/store/machine/types";
 import { PowerState } from "app/store/machine/types";
 import {
+  isMachineDetails,
   useCanEdit,
   useHasInvalidArchitecture,
   useIsRackControllerConnected,
@@ -54,7 +57,7 @@ const SummaryNotifications = ({ id }: Props): JSX.Element | null => {
   // Confirm that the full machine details have been fetched. This also allows
   // TypeScript know we're using the right union type (otherwise it will
   // complain that events don't exist on the base machine type).
-  if (!machine || !("events" in machine) || !architecturesLoaded) {
+  if (!isMachineDetails(machine) || !architecturesLoaded) {
     return null;
   }
 
@@ -69,7 +72,7 @@ const SummaryNotifications = ({ id }: Props): JSX.Element | null => {
             <>
               {formatEventText(machine.events[0])}.{" "}
               <Link
-                to={`/machine/${machine.system_id}/logs`}
+                to={machineURLs.machine.logs.index({ id: machine.system_id })}
                 className="p-notification__action"
               >
                 See logs
@@ -107,8 +110,8 @@ const SummaryNotifications = ({ id }: Props): JSX.Element | null => {
             <>
               No boot images have been imported for a valid architecture to be
               selected. Visit the{" "}
-              <LegacyLink route="/images">images page</LegacyLink> to start the
-              import process.
+              <LegacyLink route={baseURLs.images}>images page</LegacyLink> to
+              start the import process.
             </>
           ),
           status: "Error:",

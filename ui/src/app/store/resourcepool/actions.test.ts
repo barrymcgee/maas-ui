@@ -1,5 +1,7 @@
 import { actions } from "./";
 
+import { resourcePool as resourcePoolFactory } from "testing/factories";
+
 describe("resourcepool actions", () => {
   it("returns an action for fetching resource pools", () => {
     expect(actions.fetch()).toEqual({
@@ -30,7 +32,7 @@ describe("resourcepool actions", () => {
 
   it("returns an action for updating resource pools", () => {
     expect(
-      actions.update({ name: "newName", description: "new description" })
+      actions.update({ id: 1, name: "newName", description: "new description" })
     ).toEqual({
       type: "resourcepool/update",
       meta: {
@@ -39,6 +41,7 @@ describe("resourcepool actions", () => {
       },
       payload: {
         params: {
+          id: 1,
           name: "newName",
           description: "new description",
         },
@@ -68,16 +71,14 @@ describe("resourcepool actions", () => {
   });
 
   it("returns an action for creating resource pools with machines", () => {
-    expect(
-      actions.createWithMachines({ name: "pool1" }, ["machine1", "machine2"])
-    ).toEqual({
+    const pool = resourcePoolFactory({ name: "pool1" });
+    const machineIDs = ["abc123", "def456"];
+    expect(actions.createWithMachines({ pool, machineIDs })).toEqual({
       type: "resourcepool/createWithMachines",
       payload: {
         params: {
-          pool: {
-            name: "pool1",
-          },
-          machines: ["machine1", "machine2"],
+          pool,
+          machineIDs,
         },
       },
     });

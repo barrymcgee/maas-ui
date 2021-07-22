@@ -1,13 +1,15 @@
-import type {
-  CaseReducerWithPrepare,
-  PayloadAction,
-  SliceCaseReducers,
-} from "@reduxjs/toolkit";
+import type { Slice, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 
+import { PodMeta } from "app/store/pod/types";
 import type { Pod, PodState } from "app/store/pod/types";
-import type { Token, TokenState } from "app/store/token/types";
-import { generateSlice, generateStatusHandlers } from "app/store/utils";
-import type { GenericSlice } from "app/store/utils";
+import { TokenMeta } from "app/store/token/types";
+import type { TokenState } from "app/store/token/types";
+import {
+  generateCommonReducers,
+  generateStatusHandlers,
+  genericInitialState,
+} from "app/store/utils/slice";
 import {
   token as tokenFactory,
   tokenState as tokenStateFactory,
@@ -18,12 +20,16 @@ import {
 
 describe("slice", () => {
   describe("base reducers", () => {
-    let slice: GenericSlice<TokenState, Token, SliceCaseReducers<TokenState>>;
+    let slice: Slice;
 
     beforeEach(() => {
-      slice = generateSlice({
-        indexKey: "id",
-        name: "token",
+      slice = createSlice({
+        name: TokenMeta.MODEL,
+        initialState: genericInitialState as TokenState,
+        reducers: generateCommonReducers<TokenState, TokenMeta.PK, void, void>(
+          TokenMeta.MODEL,
+          TokenMeta.PK
+        ),
       });
     });
 
@@ -39,7 +45,7 @@ describe("slice", () => {
     });
 
     it("reduces fetchStart", () => {
-      expect(slice.reducer(undefined, slice.actions.fetchStart())).toEqual({
+      expect(slice.reducer(undefined, slice.actions.fetchStart(null))).toEqual({
         errors: null,
         items: [],
         loaded: false,
@@ -86,7 +92,9 @@ describe("slice", () => {
 
     it("reduces createStart", () => {
       const tokenState = tokenStateFactory({ saved: true });
-      expect(slice.reducer(tokenState, slice.actions.createStart())).toEqual({
+      expect(
+        slice.reducer(tokenState, slice.actions.createStart(null))
+      ).toEqual({
         errors: null,
         items: [],
         loaded: false,
@@ -134,7 +142,9 @@ describe("slice", () => {
 
     it("reduces updateStart", () => {
       const tokenState = tokenStateFactory({ saved: true });
-      expect(slice.reducer(tokenState, slice.actions.updateStart())).toEqual({
+      expect(
+        slice.reducer(tokenState, slice.actions.updateStart(null))
+      ).toEqual({
         errors: null,
         items: [],
         loaded: false,
@@ -183,7 +193,9 @@ describe("slice", () => {
       const tokenState = tokenStateFactory({
         items: tokens,
       });
-      expect(slice.reducer(tokenState, slice.actions.deleteStart())).toEqual({
+      expect(
+        slice.reducer(tokenState, slice.actions.deleteStart(null))
+      ).toEqual({
         errors: null,
         items: tokens,
         loaded: false,
@@ -198,7 +210,9 @@ describe("slice", () => {
       const tokenState = tokenStateFactory({
         items: tokens,
       });
-      expect(slice.reducer(tokenState, slice.actions.deleteSuccess())).toEqual({
+      expect(
+        slice.reducer(tokenState, slice.actions.deleteSuccess(null))
+      ).toEqual({
         errors: null,
         items: tokens,
         loaded: false,
@@ -246,15 +260,20 @@ describe("slice", () => {
 
   describe("additional reducers", () => {
     it("can reduce a custom reducer", () => {
-      const slice = generateSlice({
-        indexKey: "id",
-        name: "token",
+      const slice = createSlice({
+        name: TokenMeta.MODEL,
+        initialState: genericInitialState as TokenState,
         reducers: {
+          ...generateCommonReducers<TokenState, TokenMeta.PK, void, void>(
+            TokenMeta.MODEL,
+            TokenMeta.PK
+          ),
           custom: (state: TokenState, _action: PayloadAction<undefined>) => {
             state.errors = "small potato";
           },
         },
       });
+
       const tokenState = tokenStateFactory();
       expect(slice.reducer(tokenState, slice.actions.custom())).toEqual({
         errors: "small potato",
@@ -267,10 +286,14 @@ describe("slice", () => {
     });
 
     it("can overwrite a base reducer", () => {
-      const slice = generateSlice({
-        indexKey: "id",
-        name: "token",
+      const slice = createSlice({
+        name: TokenMeta.MODEL,
+        initialState: genericInitialState as TokenState,
         reducers: {
+          ...generateCommonReducers<TokenState, TokenMeta.PK, void, void>(
+            TokenMeta.MODEL,
+            TokenMeta.PK
+          ),
           fetchError: (state: TokenState, action: PayloadAction<string>) => {
             state.errors = `${action.payload} potato`;
           },
@@ -291,20 +314,24 @@ describe("slice", () => {
   });
 
   describe("base actions", () => {
-    let slice: GenericSlice<TokenState, Token, SliceCaseReducers<TokenState>>;
+    let slice: Slice;
 
     beforeEach(() => {
-      slice = generateSlice({
-        indexKey: "id",
-        name: "token",
+      slice = createSlice({
+        name: TokenMeta.MODEL,
+        initialState: genericInitialState as TokenState,
+        reducers: generateCommonReducers<TokenState, TokenMeta.PK, void, void>(
+          TokenMeta.MODEL,
+          TokenMeta.PK
+        ),
       });
     });
 
     it("can create an action for fetching tokens", () => {
-      expect(slice.actions.fetch()).toEqual({
+      expect(slice.actions.fetch(null)).toEqual({
         type: "token/fetch",
         meta: {
-          model: "token",
+          model: TokenMeta.MODEL,
           method: "list",
         },
         payload: null,
@@ -317,7 +344,7 @@ describe("slice", () => {
       ).toEqual({
         type: "token/create",
         meta: {
-          model: "token",
+          model: TokenMeta.MODEL,
           method: "create",
         },
         payload: {
@@ -335,7 +362,7 @@ describe("slice", () => {
       ).toEqual({
         type: "token/update",
         meta: {
-          model: "token",
+          model: TokenMeta.MODEL,
           method: "update",
         },
         payload: {
@@ -351,7 +378,7 @@ describe("slice", () => {
       expect(slice.actions.delete(808)).toEqual({
         type: "token/delete",
         meta: {
-          model: "token",
+          model: TokenMeta.MODEL,
           method: "delete",
         },
         payload: {
@@ -364,24 +391,15 @@ describe("slice", () => {
   });
 
   describe("status reducers", () => {
-    type PodReducers = SliceCaseReducers<PodState> & {
-      refresh: CaseReducerWithPrepare<PodState, PayloadAction<void>>;
-      refreshStart: CaseReducerWithPrepare<PodState, PayloadAction<void>>;
-      refreshSuccess: CaseReducerWithPrepare<PodState, PayloadAction<void>>;
-      refreshError: CaseReducerWithPrepare<PodState, PayloadAction<void>>;
-    };
-    type PodSlice = GenericSlice<PodState, Pod, PodReducers>;
-    let slice: PodSlice;
+    let slice: Slice;
 
     beforeEach(() => {
-      const statusHandlers = generateStatusHandlers<PodState, Pod, "id">(
-        "pod",
-        "id",
+      const statusHandlers = generateStatusHandlers<PodState, Pod, PodMeta.PK>(
+        PodMeta.PK,
         [
           {
             status: "refresh",
             statusKey: "refreshing",
-            prepare: (id) => ({ id }),
             success: (state, action) => {
               for (const i in state.items) {
                 if (state.items[i].id === action.payload.id) {
@@ -393,29 +411,22 @@ describe("slice", () => {
           },
         ]
       );
-      slice = generateSlice({
-        indexKey: "id",
-        name: "pod",
+      slice = createSlice({
+        name: PodMeta.MODEL,
+        initialState: {
+          ...genericInitialState,
+          active: null,
+          projects: {},
+          statuses: {},
+        } as PodState,
         reducers: {
-          refresh: statusHandlers.refresh,
-          refreshStart: statusHandlers.refreshStart,
-          refreshSuccess: statusHandlers.refreshSuccess,
-          refreshError: statusHandlers.refreshError,
-        },
-      }) as PodSlice;
-    });
-
-    it("can create an initial action", () => {
-      expect(slice.actions.refresh("potato")).toEqual({
-        type: "pod/refresh",
-        meta: {
-          model: "pod",
-          method: "refresh",
-        },
-        payload: {
-          params: {
-            id: "potato",
-          },
+          ...generateCommonReducers<PodState, PodMeta.PK, void, void>(
+            PodMeta.MODEL,
+            PodMeta.PK
+          ),
+          refreshStart: statusHandlers.refresh.start,
+          refreshSuccess: statusHandlers.refresh.success,
+          refreshError: statusHandlers.refresh.error,
         },
       });
     });

@@ -4,8 +4,8 @@ import { model, modelRef } from "./model";
 
 import type { Controller } from "app/store/controller/types";
 import type { Device } from "app/store/device/types";
+import { DeviceIpAssignment } from "app/store/device/types";
 import type {
-  DiscoveredIP,
   Disk,
   EventType,
   Filesystem,
@@ -15,38 +15,36 @@ import type {
   MachineEvent,
   MachineIpAddress,
   MachineNumaNode,
-  NetworkInterface,
-  NetworkLink,
   Partition,
 } from "app/store/machine/types";
-import {
-  DiskTypes,
-  NetworkLinkMode,
-  NetworkInterfaceTypes,
-  PowerState,
-  StorageLayout,
-} from "app/store/machine/types";
+import { DiskTypes, PowerState, StorageLayout } from "app/store/machine/types";
 import type {
   Pod,
   PodDetails,
-  PodHint,
-  PodHintExtras,
   PodMemoryResource,
   PodNetworkInterface,
   PodNuma,
   PodNumaHugepageMemory,
   PodNumaMemory,
-  PodNumaNode,
   PodNumaResource,
   PodProject,
   PodResource,
   PodResources,
   PodStoragePool,
   PodVM,
+  PodVmCount,
 } from "app/store/pod/types";
 import { PodType } from "app/store/pod/types";
+import { NetworkLinkMode, NetworkInterfaceTypes } from "app/store/types/enum";
 import type { Model } from "app/store/types/model";
-import type { BaseNode, SimpleNode, TestStatus } from "app/store/types/node";
+import type {
+  DiscoveredIP,
+  NetworkInterface,
+  NetworkLink,
+  BaseNode,
+  SimpleNode,
+  TestStatus,
+} from "app/store/types/node";
 import { NodeStatus } from "app/store/types/node";
 
 export const testStatus = define<TestStatus>({
@@ -76,7 +74,6 @@ const storage_pools = () => [podStoragePool(), podStoragePool()];
 const storage_tags = () => [];
 const subnets = () => [];
 const tags = () => [];
-const hints = () => ({ ...podHint(), ...podHintExtras() });
 
 const simpleNode = extend<Model, SimpleNode>(model, {
   domain: modelRef,
@@ -94,7 +91,7 @@ export const device = extend<SimpleNode, Device>(simpleNode, {
   extra_macs,
   fabrics,
   ip_address: "192.168.1.100",
-  ip_assignment: "dynamic",
+  ip_assignment: DeviceIpAssignment.DYNAMIC,
   link_speeds,
   node_type_display: "Device",
   owner: "admin",
@@ -331,21 +328,6 @@ export const controller = extend<BaseNode, Controller>(node, {
   versions: null,
 });
 
-export const podHint = define<PodHint>({
-  cores: 8,
-  local_storage: 10000000000,
-  local_storage_gb: "1000",
-  memory: 8000,
-  memory_gb: "8",
-});
-
-const podHintExtras = define<PodHintExtras>({
-  cpu_speed: 1000,
-  iscsi_storage: -1,
-  iscsi_storage_gb: "-0.0",
-  local_disks: -1,
-});
-
 export const podStoragePool = define<PodStoragePool>({
   available: 700000000000,
   id: () => `pool-id-${random()}`,
@@ -354,24 +336,6 @@ export const podStoragePool = define<PodStoragePool>({
   total: 1000000000000,
   type: "lvm",
   used: 300000000000,
-});
-
-// TODO: Remove when resources key fully implemented
-export const podNumaNode = define<PodNumaNode>({
-  cores: () => ({
-    allocated: [0, 2, 4, 6],
-    free: [1, 3],
-  }),
-  interfaces: () => [],
-  memory: () => ({
-    general: {
-      allocated: 10240,
-      free: 4068,
-    },
-    hugepages: [],
-  }),
-  node_id: () => random(),
-  vms: () => [],
 });
 
 export const podResource = define<PodResource>({
@@ -428,11 +392,18 @@ export const podNuma = define<PodNuma>({
   vms: () => [0, 1],
 });
 
+export const podVmCount = define<PodVmCount>({
+  tracked: 2,
+  other: 1,
+});
+
 export const podResources = define<PodResources>({
   cores: podResource,
   interfaces: () => [podNetworkInterface()],
   memory: podMemoryResource,
   numa: () => [podNuma()],
+  storage: podResource,
+  vm_count: podVmCount,
   vms: () => [podVM()],
 });
 
@@ -443,32 +414,25 @@ export const podProject = define<PodProject>({
 
 export const pod = extend<Model, Pod>(model, {
   architectures,
-  available: podHint,
   capabilities,
-  composed_machines_count: 1,
   cpu_over_commit_ratio: 10,
   cpu_speed: 1000,
   created: "Wed, 19 Feb. 2020 11:59:19",
   default_macvlan_mode: "",
   default_storage_pool: "b85e27c9-9d53-4821-ad64-153c53767ce9",
-  hints,
   host: "",
   ip_address: (i: number) => `192.168.1.${i}`,
   memory_over_commit_ratio: 8,
   name: (i: number) => `pod${i}`,
-  numa_pinning: () => [podNumaNode()],
   permissions,
   pool: 1,
   power_address: "qemu+ssh://ubuntu@127.0.0.1/system",
   power_pass: "",
   resources: podResources,
-  owners_count: 1,
   storage_pools,
   tags,
-  total: podHint,
   type: PodType.VIRSH,
   updated: "Fri, 03 Jul. 2020 02:44:12",
-  used: podHint,
   version: "4.0.2",
   zone: 1,
 });

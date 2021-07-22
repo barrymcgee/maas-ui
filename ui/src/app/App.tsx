@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useEffect } from "react";
 
 import { Spinner, Notification } from "@canonical/react-components";
@@ -19,6 +20,7 @@ import Login from "app/base/components/Login";
 import Section from "app/base/components/Section";
 import StatusBar from "app/base/components/StatusBar";
 import FileContext, { fileContextStore } from "app/base/file-context";
+import introURLs from "app/intro/urls";
 import { actions as authActions } from "app/store/auth";
 import authSelectors from "app/store/auth/selectors";
 import { actions as configActions } from "app/store/config";
@@ -36,7 +38,7 @@ declare global {
 }
 
 type LinkType = {
-  label: string;
+  label: ReactNode;
   url: string;
 };
 
@@ -85,24 +87,35 @@ export const App = (): JSX.Element => {
     if (connected) {
       dispatch(authActions.fetch());
       dispatch(generalActions.fetchVersion());
-      dispatch(generalActions.fetchNavigationOptions());
       // Fetch the config at the top so we can access the MAAS name for the
       // window title.
       dispatch(configActions.fetch());
     }
   }, [dispatch, connected]);
 
+  // Redirect to the MAAS or user intro if not completed and not already on
+  // an intro page.
   useEffect(() => {
-    if (!skipIntro && configLoaded) {
-      // Explicitly check that completedIntro is false so that it doesn't redirect
-      // if the config isn't defined yet.
+    if (
+      !skipIntro &&
+      configLoaded &&
+      !location.pathname.startsWith(introURLs.index)
+    ) {
       if (configLoaded && !completedIntro && !skipSetupIntro) {
-        navigateToLegacy("/intro");
+        history.push({ pathname: introURLs.index });
       } else if (authUser && !authUser.completed_intro) {
-        navigateToLegacy("/intro/user");
+        history.push({ pathname: introURLs.user });
       }
     }
-  }, [authUser, completedIntro, configLoaded, skipIntro, skipSetupIntro]);
+  }, [
+    authUser,
+    completedIntro,
+    configLoaded,
+    history,
+    location,
+    skipIntro,
+    skipSetupIntro,
+  ]);
 
   let content: JSX.Element;
   if (authLoading || connecting || authenticating) {

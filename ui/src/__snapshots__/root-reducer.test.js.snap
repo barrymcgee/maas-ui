@@ -3,6 +3,26 @@
 exports[`rootReducer should reset app to initial state on LOGOUT_SUCCESS, except status which
     resets to authenticating = false 1`] = `
 Object {
+  "bootresource": Object {
+    "connectionError": false,
+    "eventErrors": Array [],
+    "fetchedImages": null,
+    "otherImages": Array [],
+    "rackImportRunning": false,
+    "regionImportRunning": false,
+    "resources": Array [],
+    "statuses": Object {
+      "deletingImage": false,
+      "fetching": false,
+      "polling": false,
+      "savingOther": false,
+      "savingUbuntu": false,
+      "savingUbuntuCore": false,
+      "stoppingImport": false,
+    },
+    "ubuntu": null,
+    "ubuntuCoreImages": Array [],
+  },
   "config": Object {
     "errors": null,
     "items": Array [],
@@ -35,7 +55,16 @@ Object {
     "saved": false,
     "saving": false,
   },
+  "discovery": Object {
+    "errors": null,
+    "items": Array [],
+    "loaded": false,
+    "loading": false,
+    "saved": false,
+    "saving": false,
+  },
   "domain": Object {
+    "active": null,
     "errors": null,
     "items": Array [],
     "loaded": false,
@@ -102,12 +131,6 @@ Object {
       "loaded": false,
       "loading": false,
     },
-    "navigationOptions": Object {
-      "data": null,
-      "errors": Object {},
-      "loaded": false,
-      "loading": false,
-    },
     "osInfo": Object {
       "data": null,
       "errors": Object {},
@@ -144,6 +167,7 @@ Object {
   "machine": Object {
     "active": null,
     "errors": null,
+    "eventErrors": Array [],
     "items": Array [],
     "loaded": false,
     "loading": false,
@@ -286,13 +310,24 @@ Object {
     "saving": false,
   },
   "user": Object {
-    "auth": Object {},
+    "auth": Object {
+      "errors": null,
+      "loaded": false,
+      "loading": false,
+      "saved": false,
+      "saving": false,
+      "user": null,
+    },
     "errors": null,
+    "eventErrors": Array [],
     "items": Array [],
     "loaded": false,
     "loading": false,
     "saved": false,
     "saving": false,
+    "statuses": Object {
+      "markingIntroComplete": false,
+    },
   },
   "vlan": Object {
     "errors": null,

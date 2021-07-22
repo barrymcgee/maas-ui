@@ -7,8 +7,8 @@ import { ExpandedState } from "../NetworkTable/types";
 
 import NetworkActions from "./NetworkActions";
 
-import { NetworkInterfaceTypes } from "app/store/machine/types";
 import type { RootState } from "app/store/root/types";
+import { NetworkInterfaceTypes } from "app/store/types/enum";
 import { NodeActions, NodeStatus } from "app/store/types/node";
 import {
   machineDetails as machineDetailsFactory,
@@ -77,7 +77,7 @@ describe("NetworkActions", () => {
       wrapper.find("Button").last().simulate("click");
       expect(setSelectedAction).toHaveBeenCalledWith({
         name: NodeActions.TEST,
-        formProps: { applyConfiguredNetworking: true },
+        extras: { applyConfiguredNetworking: true },
       });
     });
   });

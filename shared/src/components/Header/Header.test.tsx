@@ -83,7 +83,7 @@ describe("Header", () => {
     expect(logout).toHaveBeenCalled();
   });
 
-  it("can show the intro flow state", () => {
+  it("hides nav links if not completed intro", () => {
     const wrapper = shallow(
       <Header
         authUser={{
@@ -102,9 +102,6 @@ describe("Header", () => {
         logout={jest.fn()}
       />
     );
-    expect(
-      wrapper.findWhere((n) => n.name() === "a" && n.text() === "Skip").exists()
-    ).toBe(true);
     expect(wrapper.find(".p-navigation__links").at(0).props().children).toBe(
       false
     );
@@ -205,5 +202,53 @@ describe("Header", () => {
     const selected = wrapper.find(".p-navigation__link.is-selected");
     expect(selected.exists()).toBe(true);
     expect(selected.text()).toEqual("Machines");
+  });
+
+  it("links from the logo to the dashboard for admins", () => {
+    const wrapper = shallow(
+      <Header
+        authUser={{
+          id: 99,
+          is_superuser: true,
+          username: "koala",
+        }}
+        completedIntro={true}
+        generateLegacyLink={generateURL}
+        generateNewLink={generateURL}
+        location={
+          {
+            pathname: "/",
+          } as Location
+        }
+        logout={jest.fn()}
+      />
+    );
+    expect(wrapper.find(".p-navigation__logo a").prop("href")).toBe(
+      "/dashboard"
+    );
+  });
+
+  it("links from the logo to the machine list for non admins", () => {
+    const wrapper = shallow(
+      <Header
+        authUser={{
+          id: 99,
+          is_superuser: false,
+          username: "koala",
+        }}
+        completedIntro={true}
+        generateLegacyLink={generateURL}
+        generateNewLink={generateURL}
+        location={
+          {
+            pathname: "/",
+          } as Location
+        }
+        logout={jest.fn()}
+      />
+    );
+    expect(wrapper.find(".p-navigation__logo a").prop("href")).toBe(
+      "/machines"
+    );
   });
 });

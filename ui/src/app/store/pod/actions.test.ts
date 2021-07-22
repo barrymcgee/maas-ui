@@ -13,17 +13,14 @@ describe("pod actions", () => {
   });
 
   it("can create an action for creating a pod", () => {
-    expect(actions.create({ name: "pod1", description: "a pod" })).toEqual({
+    expect(actions.create({ name: "pod1" })).toEqual({
       type: "pod/create",
       meta: {
         model: "pod",
         method: "create",
       },
       payload: {
-        params: {
-          name: "pod1",
-          description: "a pod",
-        },
+        params: { name: "pod1" },
       },
     });
   });
@@ -44,19 +41,18 @@ describe("pod actions", () => {
   });
 
   it("can create an action for updating a pod", () => {
-    expect(actions.update({ name: "pod1", description: "a pod" })).toEqual({
-      type: "pod/update",
-      meta: {
-        model: "pod",
-        method: "update",
-      },
-      payload: {
-        params: {
-          name: "pod1",
-          description: "a pod",
+    expect(actions.update({ id: 1, name: "pod1", tags: "tag1, tag2" })).toEqual(
+      {
+        type: "pod/update",
+        meta: {
+          model: "pod",
+          method: "update",
         },
-      },
-    });
+        payload: {
+          params: { id: 1, name: "pod1", tags: "tag1, tag2" },
+        },
+      }
+    );
   });
 
   it("can create an action for deleting a pod", () => {
@@ -91,7 +87,7 @@ describe("pod actions", () => {
   });
 
   it("can create an action for composing a pod", () => {
-    const params = { id: 1 };
+    const params = { hostname: "kool koala" };
     expect(actions.compose(params)).toEqual({
       type: "pod/compose",
       meta: {

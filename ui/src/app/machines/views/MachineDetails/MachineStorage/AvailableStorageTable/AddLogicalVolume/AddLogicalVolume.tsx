@@ -3,13 +3,13 @@ import * as Yup from "yup";
 
 import AddLogicalVolumeFields from "./AddLogicalVolumeFields";
 
-import FormCardButtons from "app/base/components/FormCardButtons";
 import FormikForm from "app/base/components/FormikForm";
 import { useMachineDetailsForm } from "app/machines/hooks";
 import { actions as machineActions } from "app/store/machine";
 import { MIN_PARTITION_SIZE } from "app/store/machine/constants";
 import machineSelectors from "app/store/machine/selectors";
 import type { Disk, Machine } from "app/store/machine/types";
+import { isMachineDetails } from "app/store/machine/utils";
 import type { RootState } from "app/store/root/types";
 import { formatBytes } from "app/utils";
 
@@ -46,11 +46,13 @@ const generateSchema = (availableSize: number) =>
         const { size, unit } = values;
         const sizeInBytes = formatBytes(size, unit, {
           convertTo: "B",
+          roundFunc: "floor",
         }).value;
 
         if (sizeInBytes < MIN_PARTITION_SIZE) {
           const min = formatBytes(MIN_PARTITION_SIZE, "B", {
             convertTo: unit,
+            roundFunc: "floor",
           }).value;
           return this.createError({
             message: `At least ${min}${unit} is required to add a logical volume`,
@@ -61,6 +63,7 @@ const generateSchema = (availableSize: number) =>
         if (sizeInBytes > availableSize) {
           const max = formatBytes(availableSize, "B", {
             convertTo: unit,
+            roundFunc: "floor",
           }).value;
           return this.createError({
             message: `Only ${max}${unit} available in this volume group`,
@@ -90,7 +93,7 @@ export const AddLogicalVolume = ({
     machineSelectors.getById(state, systemId)
   );
 
-  if (machine && "disks" in machine) {
+  if (isMachineDetails(machine)) {
     const initialName = `lv${machine.disks.reduce(
       (sum, d) => (d.parent?.id === disk.id ? sum + 1 : sum),
       0
@@ -98,9 +101,8 @@ export const AddLogicalVolume = ({
     const AddLogicalVolumeSchema = generateSchema(disk.available_size);
 
     return (
-      <FormikForm
+      <FormikForm<AddLogicalVolumeValues>
         allowUnchanged
-        buttons={FormCardButtons}
         cleanup={machineActions.cleanup}
         errors={errors}
         initialValues={{
@@ -108,8 +110,10 @@ export const AddLogicalVolume = ({
           mountOptions: "",
           mountPoint: "",
           name: initialName,
-          size: formatBytes(disk.available_size, "B", { convertTo: "GB" })
-            .value,
+          size: formatBytes(disk.available_size, "B", {
+            convertTo: "GB",
+            roundFunc: "floor",
+          }).value,
           tags: [],
           unit: "GB",
         }}
@@ -120,18 +124,12 @@ export const AddLogicalVolume = ({
           label: "Add logical volume",
         }}
         onSubmit={(values: AddLogicalVolumeValues) => {
-          const {
-            fstype,
-            mountOptions,
-            mountPoint,
-            name,
-            size,
-            tags,
-            unit,
-          } = values;
+          const { fstype, mountOptions, mountPoint, name, size, tags, unit } =
+            values;
           // Convert size into bytes before dispatching action
-          const convertedSize = formatBytes(size, unit, { convertTo: "B" })
-            ?.value;
+          const convertedSize = formatBytes(size, unit, {
+            convertTo: "B",
+          })?.value;
           const params = {
             name,
             size: convertedSize,

@@ -1,34 +1,22 @@
-import type {
-  CaseReducer,
-  PayloadAction,
-  PrepareAction,
-  SliceCaseReducers,
-} from "@reduxjs/toolkit";
+import type { PayloadAction } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 
-import type { GenericSlice } from "../utils";
-import { generateSlice } from "../utils";
-
+import { EventMeta } from "./types";
 import type { EventRecord, EventState } from "./types";
 
-type EventReducers = SliceCaseReducers<EventState> & {
-  // Overrides for reducers that don't take a payload.
-  fetch: {
-    reducer: CaseReducer<EventState, PayloadAction<unknown>>;
-    prepare: PrepareAction<unknown>;
-  };
-};
+import {
+  generateCommonReducers,
+  genericInitialState,
+} from "app/store/utils/slice";
 
-export type EventSlice = GenericSlice<EventState, EventRecord, EventReducers>;
-
-const eventSlice = generateSlice<
-  EventRecord,
-  EventState["errors"],
-  EventReducers,
-  "id"
->({
-  indexKey: "id",
-  name: "event",
+const eventSlice = createSlice({
+  name: EventMeta.MODEL,
+  initialState: genericInitialState as EventState,
   reducers: {
+    ...generateCommonReducers<EventState, EventMeta.PK, void, void>(
+      EventMeta.MODEL,
+      EventMeta.PK
+    ),
     fetch: {
       prepare: (
         node_id: EventRecord["node_id"],
@@ -37,7 +25,7 @@ const eventSlice = generateSlice<
         maxDays?: number | null
       ) => ({
         meta: {
-          model: "event",
+          model: EventMeta.MODEL,
           method: "list",
           // This list method fetches events by node ID, so don't prevent
           // fetching multiple times.
@@ -57,8 +45,24 @@ const eventSlice = generateSlice<
         // No state changes need to be handled for this action.
       },
     },
+    fetchSuccess: (
+      state: EventState,
+      action: PayloadAction<EventState["items"]>
+    ) => {
+      state.loading = false;
+      state.loaded = true;
+      // Events are fetch by node ID and can be limited/paginated, so each time
+      // events are fetch they need to be appended to the current list of events
+      // instead of replacing the events.
+      action.payload.forEach((nodeEvent) => {
+        // Prevent duplicates:
+        if (!state.items.find(({ id }) => id === nodeEvent.id)) {
+          state.items.push(nodeEvent);
+        }
+      });
+    },
   },
-}) as EventSlice;
+});
 
 export const { actions } = eventSlice;
 

@@ -8,10 +8,12 @@ import MachineTestsDetailsLogs from "./MachineTestsDetailsLogs";
 
 import ScriptStatus from "app/base/components/ScriptStatus";
 import type { RouteParams } from "app/base/types";
+import machineURLs from "app/machines/urls";
 import type { RootState } from "app/store/root/types";
 import { actions as scriptResultActions } from "app/store/scriptresult";
 import scriptResultSelectors from "app/store/scriptresult/selectors";
 import type { ScriptResultResult } from "app/store/scriptresult/types";
+import { ScriptResultDataType } from "app/store/scriptresult/types";
 
 type DetailsRouteParams = RouteParams & { scriptResultId: string };
 
@@ -37,7 +39,12 @@ const MachineTestsDetails = (): JSX.Element | null => {
 
   useEffect(() => {
     if (!(logs && logs[Number(scriptResultId)]) && result) {
-      ["combined", "stdout", "stderr", "result"].forEach((type) =>
+      [
+        ScriptResultDataType.COMBINED,
+        ScriptResultDataType.STDOUT,
+        ScriptResultDataType.STDERR,
+        ScriptResultDataType.RESULT,
+      ].forEach((type) =>
         dispatch(scriptResultActions.getLogs(result.id, type))
       );
     }
@@ -58,7 +65,7 @@ const MachineTestsDetails = (): JSX.Element | null => {
             <h2 className="p-heading--four">{result.name} details</h2>
           </Col>
           <Col size="4" className="u-align--right">
-            <Link to={`/machine/${id}/${returnPath}`}>
+            <Link to={`${machineURLs.machine.index({ id })}/${returnPath}`}>
               &lsaquo; Back to test results
             </Link>
           </Col>

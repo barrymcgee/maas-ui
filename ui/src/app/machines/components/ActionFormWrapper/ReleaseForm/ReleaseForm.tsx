@@ -8,8 +8,8 @@ import * as Yup from "yup";
 import ReleaseFormFields from "./ReleaseFormFields";
 
 import ActionForm from "app/base/components/ActionForm";
+import type { ClearSelectedAction } from "app/base/types";
 import { useMachineActionForm } from "app/machines/hooks";
-import type { SetSelectedAction } from "app/machines/views/MachineDetails/types";
 import { actions as configActions } from "app/store/config";
 import configSelectors from "app/store/config/selectors";
 import { actions as machineActions } from "app/store/machine";
@@ -30,12 +30,12 @@ const ReleaseSchema = Yup.object().shape({
 
 type Props = {
   actionDisabled?: boolean;
-  setSelectedAction: SetSelectedAction;
+  clearSelectedAction: ClearSelectedAction;
 };
 
 export const ReleaseForm = ({
   actionDisabled,
-  setSelectedAction,
+  clearSelectedAction,
 }: Props): JSX.Element => {
   const dispatch = useDispatch();
   const activeMachine = useSelector(machineSelectors.active);
@@ -54,55 +54,53 @@ export const ReleaseForm = ({
       dispatch(machineActions.cleanup());
     };
   }, [dispatch]);
-  return (
-    <Strip shallow>
-      {configLoaded ? (
-        <ActionForm
-          actionDisabled={actionDisabled}
-          actionName={NodeActions.RELEASE}
-          allowAllEmpty
-          cleanup={machineActions.cleanup}
-          clearSelectedAction={() => setSelectedAction(null, true)}
-          errors={errors}
-          initialValues={{
-            enableErase: enableErase,
-            quickErase: enableErase && quickErase,
-            secureErase: enableErase && secureErase,
-          }}
-          modelName="machine"
-          onSaveAnalytics={{
-            action: "Release machine",
-            category: `Machine ${
-              activeMachine ? "details" : "list"
-            } action form`,
-            label: "Release",
-          }}
-          onSubmit={(values: ReleaseFormValues) => {
-            const { enableErase, quickErase, secureErase } = values;
-            const extra = {
-              erase: enableErase,
-              quick_erase: enableErase && quickErase,
-              secure_erase: enableErase && secureErase,
-            };
-            machinesToAction.forEach((machine) => {
-              dispatch(machineActions.release(machine.system_id, extra));
-            });
-          }}
-          processingCount={processingCount}
-          selectedCount={machinesToAction.length}
-          validationSchema={ReleaseSchema}
-        >
-          <ReleaseFormFields machines={machinesToAction} />
-        </ActionForm>
-      ) : (
-        <Spinner text="Loading..." />
-      )}
-    </Strip>
+  return configLoaded ? (
+    <ActionForm<ReleaseFormValues>
+      actionDisabled={actionDisabled}
+      actionName={NodeActions.RELEASE}
+      allowAllEmpty
+      cleanup={machineActions.cleanup}
+      clearSelectedAction={clearSelectedAction}
+      errors={errors}
+      initialValues={{
+        enableErase: enableErase || false,
+        quickErase: (enableErase && quickErase) || false,
+        secureErase: (enableErase && secureErase) || false,
+      }}
+      modelName="machine"
+      onSaveAnalytics={{
+        action: "Release machine",
+        category: `Machine ${activeMachine ? "details" : "list"} action form`,
+        label: "Release",
+      }}
+      onSubmit={(values) => {
+        const { enableErase, quickErase, secureErase } = values;
+        const extra = {
+          erase: enableErase,
+          quick_erase: enableErase && quickErase,
+          secure_erase: enableErase && secureErase,
+        };
+        machinesToAction.forEach((machine) => {
+          dispatch(
+            machineActions.release({ systemId: machine.system_id, extra })
+          );
+        });
+      }}
+      processingCount={processingCount}
+      selectedCount={machinesToAction.length}
+      validationSchema={ReleaseSchema}
+    >
+      <Strip shallow>
+        <ReleaseFormFields machines={machinesToAction} />
+      </Strip>
+    </ActionForm>
+  ) : (
+    <Spinner text="Loading..." />
   );
 };
 
 ReleaseForm.propTypes = {
-  setSelectedAction: PropTypes.func.isRequired,
+  clearSelectedAction: PropTypes.func.isRequired,
 };
 
 export default ReleaseForm;

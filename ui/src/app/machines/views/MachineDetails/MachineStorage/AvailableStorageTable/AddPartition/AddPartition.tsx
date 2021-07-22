@@ -3,13 +3,13 @@ import * as Yup from "yup";
 
 import AddPartitionFields from "./AddPartitionFields";
 
-import FormCardButtons from "app/base/components/FormCardButtons";
 import FormikForm from "app/base/components/FormikForm";
 import { useMachineDetailsForm } from "app/machines/hooks";
 import { actions as machineActions } from "app/store/machine";
 import { MIN_PARTITION_SIZE } from "app/store/machine/constants";
 import machineSelectors from "app/store/machine/selectors";
 import type { Disk, Machine } from "app/store/machine/types";
+import { isMachineDetails } from "app/store/machine/utils";
 import type { RootState } from "app/store/root/types";
 import { formatBytes } from "app/utils";
 
@@ -43,11 +43,13 @@ const generateSchema = (availableSize: number) =>
         const { partitionSize, unit } = values;
         const sizeInBytes = formatBytes(partitionSize, unit, {
           convertTo: "B",
+          roundFunc: "floor",
         }).value;
 
         if (sizeInBytes < MIN_PARTITION_SIZE) {
           const min = formatBytes(MIN_PARTITION_SIZE, "B", {
             convertTo: unit,
+            roundFunc: "floor",
           }).value;
           return this.createError({
             message: `At least ${min}${unit} is required to partition this disk`,
@@ -58,6 +60,7 @@ const generateSchema = (availableSize: number) =>
         if (sizeInBytes > availableSize) {
           const max = formatBytes(availableSize, "B", {
             convertTo: unit,
+            roundFunc: "floor",
           }).value;
           return this.createError({
             message: `Only ${max}${unit} available in this disk`,
@@ -86,16 +89,15 @@ export const AddPartition = ({
     machineSelectors.getById(state, systemId)
   );
 
-  if (machine && "disks" in machine) {
+  if (isMachineDetails(machine)) {
     const partitionName = disk
       ? `${disk.name}-part${(disk.partitions?.length || 0) + 1}`
       : "partition";
     const AddPartitionSchema = generateSchema(disk.available_size);
 
     return (
-      <FormikForm
+      <FormikForm<AddPartitionValues>
         allowUnchanged
-        buttons={FormCardButtons}
         cleanup={machineActions.cleanup}
         errors={errors}
         initialValues={{
@@ -104,6 +106,7 @@ export const AddPartition = ({
           mountPoint: "",
           partitionSize: formatBytes(disk.available_size, "B", {
             convertTo: "GB",
+            roundFunc: "floor",
           }).value,
           unit: "GB",
         }}
@@ -113,18 +116,14 @@ export const AddPartition = ({
           category: "Machine storage",
           label: "Add partition",
         }}
-        onSubmit={(values: AddPartitionValues) => {
+        onSubmit={(values) => {
           dispatch(machineActions.cleanup());
-          const {
-            fstype,
-            mountOptions,
-            mountPoint,
-            partitionSize,
-            unit,
-          } = values;
+          const { fstype, mountOptions, mountPoint, partitionSize, unit } =
+            values;
           // Convert size into bytes before dispatching action
-          const size = formatBytes(partitionSize, unit, { convertTo: "B" })
-            ?.value;
+          const size = formatBytes(partitionSize, unit, {
+            convertTo: "B",
+          })?.value;
           const params = {
             blockId: disk.id,
             partitionSize: size,

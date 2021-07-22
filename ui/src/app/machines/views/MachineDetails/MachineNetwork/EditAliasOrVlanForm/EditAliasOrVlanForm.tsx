@@ -9,7 +9,6 @@ import NetworkFields, {
 } from "../NetworkFields/NetworkFields";
 import type { NetworkValues } from "../NetworkFields/NetworkFields";
 
-import FormCardButtons from "app/base/components/FormCardButtons";
 import FormikForm from "app/base/components/FormikForm";
 import TagField from "app/base/components/TagField";
 import { useMachineDetailsForm } from "app/machines/hooks";
@@ -18,24 +17,25 @@ import fabricSelectors from "app/store/fabric/selectors";
 import { actions as machineActions } from "app/store/machine";
 import machineSelectors from "app/store/machine/selectors";
 import type {
-  Machine,
   MachineDetails,
-  NetworkInterface,
-  NetworkLink,
+  UpdateInterfaceParams,
 } from "app/store/machine/types";
-import { NetworkInterfaceTypes } from "app/store/machine/types";
 import {
   getInterfaceIPAddress,
   getInterfaceSubnet,
   getLinkMode,
+  isMachineDetails,
   useIsAllNetworkingDisabled,
 } from "app/store/machine/utils";
 import { getInterfaceTypeText } from "app/store/machine/utils/networking";
 import type { RootState } from "app/store/root/types";
 import { actions as subnetActions } from "app/store/subnet";
 import subnetSelectors from "app/store/subnet/selectors";
+import { NetworkInterfaceTypes } from "app/store/types/enum";
+import type { NetworkInterface, NetworkLink } from "app/store/types/node";
 import { actions as vlanActions } from "app/store/vlan";
 import vlanSelectors from "app/store/vlan/selectors";
+import { preparePayload } from "app/utils";
 
 type Props = {
   close: () => void;
@@ -88,7 +88,7 @@ const EditAliasOrVlanForm = ({
     dispatch(vlanActions.fetch());
   }, [dispatch]);
 
-  if (!nic || !machine || !("interfaces" in machine)) {
+  if (!nic || !isMachineDetails(machine)) {
     return <Spinner text="Loading..." />;
   }
 
@@ -104,15 +104,14 @@ const EditAliasOrVlanForm = ({
   const ipAddress = getInterfaceIPAddress(machine, fabrics, vlans, nic, link);
   const interfaceTypeDisplay = getInterfaceTypeText(machine, nic, link);
   return (
-    <FormikForm
-      buttons={FormCardButtons}
+    <FormikForm<EditAliasOrVlanValues>
       cleanup={cleanup}
       errors={errors}
       initialValues={{
-        fabric: vlan?.fabric,
-        ip_address: ipAddress,
+        fabric: vlan?.fabric || "",
+        ip_address: ipAddress || "",
         mode: getLinkMode(link),
-        subnet: subnet?.id,
+        subnet: subnet?.id || "",
         vlan: nic.vlan_id,
         ...(isVLAN ? { tags: nic.tags } : {}),
       }}
@@ -122,25 +121,15 @@ const EditAliasOrVlanForm = ({
         label: `Edit ${interfaceType} form`,
       }}
       onCancel={close}
-      onSubmit={(values: EditAliasOrVlanValues) => {
+      onSubmit={(values) => {
         // Clear the errors from the previous submission.
         dispatch(cleanup());
-        type Payload = EditAliasOrVlanValues & {
-          interface_id: NetworkInterface["id"];
-          system_id: Machine["system_id"];
-        };
-        const payload: Payload = {
+        const payload = preparePayload({
           ...values,
           interface_id: nic.id,
           system_id: systemId,
           ...(isAlias ? { link_id: link?.id } : {}),
-        };
-        // Remove all empty values.
-        Object.entries(payload).forEach(([key, value]) => {
-          if (value === "") {
-            delete payload[key as keyof Payload];
-          }
-        });
+        }) as UpdateInterfaceParams;
         dispatch(machineActions.updateInterface(payload));
       }}
       resetOnSave

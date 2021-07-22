@@ -7,22 +7,20 @@ import { ExpandedState } from "../types";
 import TableMenu from "app/base/components/TableMenu";
 import type { Props as TableMenuProps } from "app/base/components/TableMenu/TableMenu";
 import machineSelectors from "app/store/machine/selectors";
-import type {
-  Machine,
-  NetworkInterface,
-  NetworkLink,
-} from "app/store/machine/types";
-import { NetworkInterfaceTypes } from "app/store/machine/types";
+import type { Machine } from "app/store/machine/types";
 import {
   canAddAlias,
   hasInterfaceType,
   getInterfaceTypeText,
   getLinkInterface,
+  isMachineDetails,
   useCanAddVLAN,
   useIsAllNetworkingDisabled,
   useIsLimitedEditingAllowed,
 } from "app/store/machine/utils";
 import type { RootState } from "app/store/root/types";
+import { NetworkInterfaceTypes } from "app/store/types/enum";
+import type { NetworkInterface, NetworkLink } from "app/store/types/node";
 
 type Props = {
   link?: NetworkLink | null;
@@ -47,7 +45,7 @@ const NetworkTableActions = ({
   const isLimitedEditingAllowed = useIsLimitedEditingAllowed(nic, machine);
   const canAddVLAN = useCanAddVLAN(machine, nic, link);
   const itCanAddAlias = canAddAlias(machine, nic, link);
-  if (!machine || !("interfaces" in machine)) {
+  if (!isMachineDetails(machine)) {
     return null;
   }
   const isPhysical = hasInterfaceType(

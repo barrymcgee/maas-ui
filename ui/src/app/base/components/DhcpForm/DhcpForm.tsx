@@ -7,7 +7,6 @@ import * as Yup from "yup";
 import type { DHCPFormValues } from "./types";
 
 import DhcpFormFields from "app/base/components/DhcpFormFields";
-import FormCardButtons from "app/base/components/FormCardButtons";
 import FormikForm from "app/base/components/FormikForm";
 import type { Props as FormikFormProps } from "app/base/components/FormikForm/FormikForm";
 import { useAddMessage } from "app/base/hooks";
@@ -22,19 +21,21 @@ import { actions as machineActions } from "app/store/machine";
 import type { RootState } from "app/store/root/types";
 import { actions as subnetActions } from "app/store/subnet";
 
-const DhcpSchema = Yup.object().shape({
-  description: Yup.string(),
-  enabled: Yup.boolean(),
-  entity: Yup.string().when("type", {
-    is: (val: string) => val && val.length > 0,
-    then: Yup.string().required(
-      "You must choose an entity for this snippet type"
-    ),
-  }),
-  name: Yup.string().required("Snippet name is required"),
-  value: Yup.string().required("DHCP snippet is required"),
-  type: Yup.string(),
-});
+const DhcpSchema = Yup.object()
+  .shape({
+    description: Yup.string(),
+    enabled: Yup.boolean(),
+    entity: Yup.string().when("type", {
+      is: (val: string) => val && val.length > 0,
+      then: Yup.string().required(
+        "You must choose an entity for this snippet type"
+      ),
+    }),
+    name: Yup.string().required("Snippet name is required"),
+    value: Yup.string().required("DHCP snippet is required"),
+    type: Yup.string(),
+  })
+  .defined();
 
 type Props = {
   analyticsCategory: string;
@@ -57,7 +58,11 @@ export const DhcpForm = ({
   const saved = useSelector(dhcpsnippetSelectors.saved);
   const saving = useSelector(dhcpsnippetSelectors.saving);
   const editing = !!dhcpSnippet;
-  const { loading, loaded, type: targetType } = useDhcpTarget(
+  const {
+    loading,
+    loaded,
+    type: targetType,
+  } = useDhcpTarget(
     editing ? dhcpSnippet?.node : null,
     editing ? dhcpSnippet?.subnet : null
   );
@@ -85,14 +90,15 @@ export const DhcpForm = ({
   }
 
   return (
-    <FormikForm
-      buttons={FormCardButtons}
+    <FormikForm<DHCPFormValues>
       cleanup={dhcpsnippetActions.cleanup}
       errors={errors}
       initialValues={{
         description: dhcpSnippet ? dhcpSnippet.description : "",
         enabled: dhcpSnippet ? dhcpSnippet.enabled : false,
-        entity: dhcpSnippet ? dhcpSnippet.node || dhcpSnippet.subnet || "" : "",
+        entity: dhcpSnippet
+          ? dhcpSnippet.node || `${dhcpSnippet.subnet}` || ""
+          : "",
         name: dhcpSnippet ? dhcpSnippet.name : "",
         type: (dhcpSnippet && targetType) || "",
         value: dhcpSnippet ? dhcpSnippet.value : "",
@@ -102,11 +108,10 @@ export const DhcpForm = ({
         category: analyticsCategory,
         label: `${editing ? "Edit" : "Add"} form`,
       }}
-      onSubmit={(values: DHCPFormValues) => {
+      onSubmit={(values) => {
         const params: {
           description: DHCPFormValues["description"];
           enabled: DHCPFormValues["enabled"];
-          id?: DHCPSnippet["id"];
           name: DHCPFormValues["name"];
           node?: DHCPSnippet["node"];
           subnet?: DHCPSnippet["subnet"];
@@ -123,8 +128,14 @@ export const DhcpForm = ({
           params.node = values.entity;
         }
         if (editing) {
-          params.id = dhcpSnippet?.id;
-          dispatch(dhcpsnippetActions.update(params));
+          if (dhcpSnippet) {
+            dispatch(
+              dhcpsnippetActions.update({
+                id: dhcpSnippet.id,
+                ...params,
+              })
+            );
+          }
         } else {
           dispatch(dhcpsnippetActions.create(params));
         }

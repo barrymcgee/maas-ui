@@ -11,8 +11,8 @@ import licenseKeysSelectors from "app/store/licensekeys/selectors";
 import { useAddMessage } from "app/base/hooks";
 import { useWindowTitle } from "app/base/hooks";
 import FormCard from "app/base/components/FormCard";
-import FormCardButtons from "app/base/components/FormCardButtons";
 import FormikForm from "app/base/components/FormikForm";
+import settingsURLs from "app/settings/urls";
 import LicenseKeyFormFields from "../LicenseKeyFormFields";
 
 const LicenseKeySchema = Yup.object().shape({
@@ -62,7 +62,6 @@ export const LicenseKeyForm = ({ licenseKey }) => {
         <Spinner text="loading..." />
       ) : osystems.length > 0 ? (
         <FormikForm
-          buttons={FormCardButtons}
           cleanup={licenseKeysActions.cleanup}
           errors={errors}
           initialValues={{
@@ -72,7 +71,9 @@ export const LicenseKeyForm = ({ licenseKey }) => {
               : releases[osystems[0][0]][0].value,
             license_key: licenseKey ? licenseKey.license_key : "",
           }}
-          onCancel={() => history.push({ pathname: "/settings/license-keys" })}
+          onCancel={() =>
+            history.push({ pathname: settingsURLs.licenseKeys.index })
+          }
           onSaveAnalytics={{
             action: "Saved",
             category: "License keys settings",
@@ -93,7 +94,7 @@ export const LicenseKeyForm = ({ licenseKey }) => {
           }}
           saving={saving}
           saved={saved}
-          savedRedirect="/settings/license-keys"
+          savedRedirect={settingsURLs.licenseKeys.index}
           submitLabel={editing ? "Update license key" : "Add license key"}
           validationSchema={LicenseKeySchema}
         >

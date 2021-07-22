@@ -7,6 +7,7 @@ import * as Yup from "yup";
 import { actions as machineActions } from "app/store/machine";
 import { actions as generalActions } from "app/store/general";
 import { useAddMessage, useWindowTitle } from "app/base/hooks";
+import machineURLs from "app/machines/urls";
 import {
   formatPowerParameters,
   generatePowerParametersSchema,
@@ -16,7 +17,6 @@ import { actions as domainActions } from "app/store/domain";
 import AddChassisFormFields from "../AddChassisFormFields";
 import domainSelectors from "app/store/domain/selectors";
 import FormCard from "app/base/components/FormCard";
-import FormCardButtons from "app/base/components/FormCardButtons";
 import FormikForm from "app/base/components/FormikForm";
 import { powerTypes as powerTypesSelectors } from "app/store/general/selectors";
 import { PowerFieldScope } from "app/store/general/types";
@@ -75,7 +75,6 @@ export const AddChassisForm = () => {
       ) : (
         <FormCard sidebar={false} title="Add chassis">
           <FormikForm
-            buttons={FormCardButtons}
             buttonsHelpLabel="Help with adding chassis"
             buttonsHelpLink="https://maas.io/docs/add-machines#heading--add-nodes-via-a-chassis"
             cleanup={machineActions.cleanup}
@@ -85,7 +84,9 @@ export const AddChassisForm = () => {
               power_parameters: initialPowerParameters,
               power_type: "",
             }}
-            onCancel={() => history.push({ pathname: "/machines" })}
+            onCancel={() =>
+              history.push({ pathname: machineURLs.machines.index })
+            }
             onSaveAnalytics={{
               action: resetOnSave ? "Save and add another" : "Save",
               category: "Chassis",
@@ -114,8 +115,11 @@ export const AddChassisForm = () => {
             resetOnSave={resetOnSave}
             saving={machineSaving}
             saved={machineSaved}
-            savedRedirect={resetOnSave ? undefined : "/machines"}
-            secondarySubmit={() => setResetOnSave(true)}
+            savedRedirect={resetOnSave ? undefined : machineURLs.machines.index}
+            secondarySubmit={(_, { submitForm }) => {
+              setResetOnSave(true);
+              submitForm();
+            }}
             secondarySubmitLabel="Save and add another"
             submitLabel="Save chassis"
             validationSchema={AddChassisSchema}

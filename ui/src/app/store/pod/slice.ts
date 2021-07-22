@@ -1,13 +1,25 @@
+import type { PayloadAction } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
+
+import { PodMeta } from "./types";
 import type {
-  CaseReducer,
-  PayloadAction,
-  SliceCaseReducers,
-} from "@reduxjs/toolkit";
+  CreateParams,
+  ComposeParams,
+  DeleteParams,
+  GetProjectsParams,
+  Pod,
+  PodProject,
+  PodState,
+  PodType,
+  UpdateParams,
+} from "./types";
 
-import type { Pod, PodProject, PodState, PodType } from "./types";
-
-import { generateSlice, generateStatusHandlers } from "app/store/utils";
-import type { GenericItemMeta, GenericSlice } from "app/store/utils";
+import { generateStatusHandlers } from "app/store/utils";
+import type { GenericItemMeta } from "app/store/utils";
+import {
+  generateCommonReducers,
+  genericInitialState,
+} from "app/store/utils/slice";
 
 export const DEFAULT_STATUSES = {
   composing: false,
@@ -15,43 +27,20 @@ export const DEFAULT_STATUSES = {
   refreshing: false,
 };
 
-type PodReducers = SliceCaseReducers<PodState> & {
-  // Overrides for reducers that don't take a payload.
-  getStart: CaseReducer<PodState, PayloadAction<null>>;
-  deleteStart: CaseReducer<PodState, PayloadAction<GenericItemMeta<Pod>>>;
-  deleteSuccess: CaseReducer<PodState, PayloadAction<GenericItemMeta<Pod>>>;
-};
-
-type GetProjectsMeta = {
-  password?: string;
-  power_address: string;
-  type: string;
-};
-
-const statusHandlers = generateStatusHandlers<PodState, Pod, "id">(
-  "pod",
-  "id",
+const statusHandlers = generateStatusHandlers<PodState, Pod, PodMeta.PK>(
+  PodMeta.PK,
   [
     {
       status: "compose",
       statusKey: "composing",
-      prepare: (id) => id,
     },
     {
       status: "delete",
       statusKey: "deleting",
-      prepare: ({
-        decompose = false,
-        id,
-      }: {
-        decompose?: boolean;
-        id: Pod["id"];
-      }) => ({ decompose, id }),
     },
     {
       status: "refresh",
       statusKey: "refreshing",
-      prepare: (id) => ({ id }),
       success: (state, action) => {
         for (const i in state.items) {
           if (state.items[i].id === action.payload.id) {
@@ -62,34 +51,77 @@ const statusHandlers = generateStatusHandlers<PodState, Pod, "id">(
       },
     },
   ]
-) as PodReducers;
+);
 
-export type PodSlice = GenericSlice<PodState, Pod, PodReducers>;
-
-const podSlice = generateSlice<Pod, PodState["errors"], PodReducers, "id">({
-  indexKey: "id",
+const podSlice = createSlice({
+  name: PodMeta.MODEL,
   initialState: {
+    ...genericInitialState,
     active: null,
     projects: {},
     statuses: {},
   } as PodState,
-  name: "pod",
   reducers: {
-    // Explicitly assign generated status handlers so that the dynamically
-    // generated names exist on the reducers object.
-    refresh: statusHandlers.refresh,
-    refreshStart: statusHandlers.refreshStart,
-    refreshSuccess: statusHandlers.refreshSuccess,
-    refreshError: statusHandlers.refreshError,
-    delete: statusHandlers.delete,
-    deleteStart: statusHandlers.deleteStart,
-    deleteSuccess: statusHandlers.deleteSuccess,
-    deleteError: statusHandlers.deleteError,
-    compose: statusHandlers.compose,
-    composeStart: statusHandlers.composeStart,
-    composeSuccess: statusHandlers.composeSuccess,
-    composeError: statusHandlers.composeError,
-    fetchSuccess: (state: PodState, action) => {
+    ...generateCommonReducers<PodState, PodMeta.PK, CreateParams, UpdateParams>(
+      PodMeta.MODEL,
+      PodMeta.PK
+    ),
+    createNotify: (state: PodState, action) => {
+      // In the event that the server erroneously attempts to create an existing machine,
+      // due to a race condition etc., ensure we update instead of creating duplicates.
+      const existingIdx = state.items.findIndex(
+        (draftItem: Pod) => draftItem.id === action.payload.id
+      );
+      if (existingIdx !== -1) {
+        state.items[existingIdx] = action.payload;
+      } else {
+        state.items.push(action.payload);
+        state.statuses[action.payload.id] = DEFAULT_STATUSES;
+      }
+    },
+    compose: {
+      prepare: (params: ComposeParams) => ({
+        meta: {
+          model: PodMeta.MODEL,
+          method: "compose",
+        },
+        payload: {
+          params,
+        },
+      }),
+      reducer: () => {
+        // No state changes need to be handled for this action.
+      },
+    },
+    composeError: statusHandlers.compose.error,
+    composeStart: statusHandlers.compose.start,
+    composeSuccess: statusHandlers.compose.success,
+    delete: {
+      prepare: (params: DeleteParams) => ({
+        meta: {
+          model: PodMeta.MODEL,
+          method: "delete",
+        },
+        payload: {
+          params,
+        },
+      }),
+      reducer: () => {
+        // No state changes need to be handled for this action.
+      },
+    },
+    deleteError: statusHandlers.delete.error,
+    deleteStart: statusHandlers.delete.start,
+    deleteSuccess: statusHandlers.delete.success,
+    deleteNotify: (state: PodState, action) => {
+      const index = state.items.findIndex(
+        (item: Pod) => item.id === action.payload
+      );
+      state.items.splice(index, 1);
+      // Clean up the statuses for model.
+      delete state.statuses[action.payload];
+    },
+    fetchSuccess: (state: PodState, action: PayloadAction<Pod[]>) => {
       state.loading = false;
       state.loaded = true;
       action.payload.forEach((newItem: Pod) => {
@@ -108,9 +140,9 @@ const podSlice = generateSlice<Pod, PodState["errors"], PodReducers, "id">({
       });
     },
     get: {
-      prepare: (podID: Pod["id"]) => ({
+      prepare: (podID: Pod[PodMeta.PK]) => ({
         meta: {
-          model: "pod",
+          model: PodMeta.MODEL,
           method: "get",
         },
         payload: {
@@ -121,7 +153,7 @@ const podSlice = generateSlice<Pod, PodState["errors"], PodReducers, "id">({
         // No state changes need to be handled for this action.
       },
     },
-    getStart: (state: PodState, _action: PayloadAction<null>) => {
+    getStart: (state: PodState) => {
       state.loading = true;
     },
     getError: (state: PodState, action: PayloadAction<PodState["errors"]>) => {
@@ -146,13 +178,9 @@ const podSlice = generateSlice<Pod, PodState["errors"], PodReducers, "id">({
       state.loading = false;
     },
     getProjects: {
-      prepare: (params: {
-        type: PodType;
-        power_address: string;
-        password?: string;
-      }) => ({
+      prepare: (params: GetProjectsParams) => ({
         meta: {
-          model: "pod",
+          model: PodMeta.MODEL,
           method: "get_projects",
         },
         payload: {
@@ -163,33 +191,61 @@ const podSlice = generateSlice<Pod, PodState["errors"], PodReducers, "id">({
         // No state changes need to be handled for this action.
       },
     },
-    getProjectsSuccess: (
-      state: PodState,
-      action: PayloadAction<
-        PodProject[],
-        string,
-        GenericItemMeta<GetProjectsMeta>
-      >
-    ) => {
-      const address = action.meta.item.power_address;
-      if (address) {
-        state.projects[address] = action.payload;
-      }
+    getProjectsSuccess: {
+      prepare: (
+        item: {
+          type: PodType;
+          power_address: string;
+          password?: string;
+        },
+        payload: PodProject[]
+      ) => ({
+        meta: {
+          item,
+        },
+        payload,
+      }),
+      reducer: (
+        state: PodState,
+        action: PayloadAction<
+          PodProject[],
+          string,
+          GenericItemMeta<GetProjectsParams>
+        >
+      ) => {
+        const address = action.meta.item.power_address;
+        if (address) {
+          state.projects[address] = action.payload;
+        }
+      },
     },
     getProjectsError: (
       state: PodState,
-      action: PayloadAction<
-        PodState["errors"],
-        string,
-        GenericItemMeta<GetProjectsMeta>
-      >
+      action: PayloadAction<PodState["errors"]>
     ) => {
       state.errors = action.payload;
     },
-    setActive: {
-      prepare: (id: Pod["id"] | null) => ({
+    refresh: {
+      prepare: (id: Pod[PodMeta.PK]) => ({
         meta: {
-          model: "pod",
+          model: PodMeta.MODEL,
+          method: "refresh",
+        },
+        payload: {
+          params: { id },
+        },
+      }),
+      reducer: () => {
+        // No state changes need to be handled for this action.
+      },
+    },
+    refreshError: statusHandlers.refresh.error,
+    refreshStart: statusHandlers.refresh.start,
+    refreshSuccess: statusHandlers.refresh.success,
+    setActive: {
+      prepare: (id: Pod[PodMeta.PK] | null) => ({
+        meta: {
+          model: PodMeta.MODEL,
           method: "set_active",
         },
         payload: {
@@ -211,29 +267,8 @@ const podSlice = generateSlice<Pod, PodState["errors"], PodReducers, "id">({
     setActiveSuccess: (state: PodState, action: PayloadAction<Pod | null>) => {
       state.active = action.payload?.id || null;
     },
-    createNotify: (state: PodState, action) => {
-      // In the event that the server erroneously attempts to create an existing machine,
-      // due to a race condition etc., ensure we update instead of creating duplicates.
-      const existingIdx = state.items.findIndex(
-        (draftItem: Pod) => draftItem.id === action.payload.id
-      );
-      if (existingIdx !== -1) {
-        state.items[existingIdx] = action.payload;
-      } else {
-        state.items.push(action.payload);
-        state.statuses[action.payload.id] = DEFAULT_STATUSES;
-      }
-    },
-    deleteNotify: (state: PodState, action) => {
-      const index = state.items.findIndex(
-        (item: Pod) => item.id === action.payload
-      );
-      state.items.splice(index, 1);
-      // Clean up the statuses for model.
-      delete state.statuses[action.payload];
-    },
   },
-}) as PodSlice;
+});
 
 export const { actions } = podSlice;
 

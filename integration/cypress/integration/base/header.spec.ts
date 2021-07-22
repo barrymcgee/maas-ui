@@ -16,9 +16,9 @@ context("Header", () => {
     cy.clearCookie("skipintro");
   });
 
-  it("navigates to the dashboard when clicking on the logo", () => {
+  it("navigates to the machine list when clicking on the logo as a non admin", () => {
     cy.get(".p-navigation__logo .p-navigation__link").click();
-    cy.location("pathname").should("eq", generateLegacyURL("/dashboard"));
+    cy.location("pathname").should("eq", generateNewURL("/machines"));
     cy.get(".p-navigation__link.is-selected a").should("not.exist");
   });
 
@@ -54,13 +54,13 @@ context("Header", () => {
 
   it("navigates to domains", () => {
     cy.get(".p-navigation__link a:contains(DNS)").click();
-    cy.location("pathname").should("eq", generateLegacyURL("/domains"));
+    cy.location("pathname").should("eq", generateNewURL("/domains"));
     cy.get(".p-navigation__link.is-selected a").contains("DNS");
   });
 
   it("navigates to zones", () => {
     cy.get(".p-navigation__link a:contains(AZs)").click();
-    cy.location("pathname").should("eq", generateLegacyURL("/zones"));
+    cy.location("pathname").should("eq", generateNewURL("/zones"));
     cy.get(".p-navigation__link.is-selected a").contains("AZs");
   });
 

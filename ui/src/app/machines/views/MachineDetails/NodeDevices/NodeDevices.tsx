@@ -1,17 +1,18 @@
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 
+import classNames from "classnames";
 import pluralize from "pluralize";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
-
-import type { SetSelectedAction } from "../types";
 
 import NodeDevicesWarning from "./NodeDevicesWarning";
 
 import DoubleRow from "app/base/components/DoubleRow";
 import Placeholder from "app/base/components/Placeholder";
 import { HardwareType } from "app/base/enum";
+import machineURLs from "app/machines/urls";
+import type { MachineSetSelectedAction } from "app/machines/views/types";
 import type { MachineDetails } from "app/store/machine/types";
 import { actions as nodeDeviceActions } from "app/store/nodedevice";
 import nodeDeviceSelectors from "app/store/nodedevice/selectors";
@@ -22,7 +23,7 @@ import type { RootState } from "app/store/root/types";
 type Props = {
   bus: NodeDeviceBus;
   machine: MachineDetails;
-  setSelectedAction: SetSelectedAction;
+  setSelectedAction: MachineSetSelectedAction;
 };
 type NodeDeviceGroup = {
   hardwareTypes: HardwareType[];
@@ -58,13 +59,13 @@ const generateGroup = (
     if (showGroupLabel) {
       if (group.pathname === "storage") {
         groupLabel = (
-          <Link to={`/machine/${machine.system_id}/storage`}>
+          <Link to={machineURLs.machine.storage({ id: machine.system_id })}>
             {group.label}
           </Link>
         );
       } else if (group.pathname === "network") {
         groupLabel = (
-          <Link to={`/machine/${machine.system_id}/network`}>
+          <Link to={machineURLs.machine.network({ id: machine.system_id })}>
             {group.label}
           </Link>
         );
@@ -75,9 +76,9 @@ const generateGroup = (
 
     return (
       <tr
-        className={`node-devices-table__row${
-          showGroupLabel ? "" : " truncated-border"
-        }`}
+        className={classNames("node-devices-table__row", {
+          "truncated-border": !showGroupLabel,
+        })}
         key={`node-device-${id}`}
       >
         <td className="group-col">
@@ -90,10 +91,19 @@ const generateGroup = (
           )}
         </td>
         <td className="vendor-col">
-          <DoubleRow primary={vendor_name} secondary={vendor_id} />
+          <DoubleRow
+            primary={vendor_name}
+            primaryTitle={vendor_name}
+            secondary={vendor_id}
+          />
         </td>
-        <td className="product-col">{product_name}</td>
-        <td className="product-id-col">{product_id}</td>
+        <td className="product-col">
+          <DoubleRow
+            primary={product_name || "—"}
+            primaryTitle={product_name}
+            secondary={product_id}
+          />
+        </td>
         <td className="driver-col">{commissioning_driver}</td>
         <td
           className="numa-node-col u-align--right"
@@ -191,8 +201,10 @@ const NodeDevices = ({
               <div>Vendor</div>
               <div>ID</div>
             </th>
-            <th className="product-col">Product</th>
-            <th className="product-id-col">Product ID</th>
+            <th className="product-col">
+              <div>Product</div>
+              <div>ID</div>
+            </th>
             <th className="driver-col">Driver</th>
             <th className="numa-node-col u-align--right">NUMA node</th>
             {bus === NodeDeviceBus.PCIE ? (
@@ -238,10 +250,12 @@ const NodeDevices = ({
                     />
                   </td>
                   <td className="product-col">
-                    <Placeholder>Example product description</Placeholder>
-                  </td>
-                  <td className="product-id-col">
-                    <Placeholder>0000</Placeholder>
+                    <DoubleRow
+                      primary={
+                        <Placeholder>Example product description</Placeholder>
+                      }
+                      secondary={<Placeholder>0000</Placeholder>}
+                    />
                   </td>
                   <td className="driver-col">
                     <Placeholder>Driver name</Placeholder>

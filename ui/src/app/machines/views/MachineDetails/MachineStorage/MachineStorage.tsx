@@ -12,9 +12,14 @@ import UsedStorageTable from "./UsedStorageTable";
 
 import { useSendAnalytics, useWindowTitle } from "app/base/hooks";
 import type { RouteParams } from "app/base/types";
+import settingsURLs from "app/settings/urls";
 import machineSelectors from "app/store/machine/selectors";
 import { StorageLayout } from "app/store/machine/types";
-import { isCacheSet, useCanEditStorage } from "app/store/machine/utils";
+import {
+  isCacheSet,
+  isMachineDetails,
+  useCanEditStorage,
+} from "app/store/machine/utils";
 import type { RootState } from "app/store/root/types";
 
 const MachineStorage = (): JSX.Element => {
@@ -28,7 +33,7 @@ const MachineStorage = (): JSX.Element => {
 
   useWindowTitle(`${`${machine?.fqdn} ` || "Machine"} storage`);
 
-  if (machine && "disks" in machine && "special_filesystems" in machine) {
+  if (isMachineDetails(machine)) {
     const showDatastores =
       machine.detected_storage_layout === StorageLayout.VMFS6;
     const showCacheSets = machine.disks.some((disk) => isCacheSet(disk));
@@ -88,7 +93,7 @@ const MachineStorage = (): JSX.Element => {
           </p>
           <p>
             Change the default layout in{" "}
-            <Link to="/settings/storage">Settings &rsaquo; Storage</Link>
+            <Link to={settingsURLs.storage}>Settings &rsaquo; Storage</Link>
           </p>
         </Strip>
       </>

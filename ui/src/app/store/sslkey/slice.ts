@@ -1,23 +1,23 @@
-import type { SliceCaseReducers } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 
-import type { GenericSlice } from "../utils";
-import { generateSlice } from "../utils";
+import { SSLKeyMeta } from "./types";
+import type { CreateParams, SSLKeyState } from "./types";
 
-import type { SSLKey, SSLKeyState } from "./types";
+import {
+  generateCommonReducers,
+  genericInitialState,
+} from "app/store/utils/slice";
 
-type SSLKeyReducers = SliceCaseReducers<SSLKeyState>;
-
-export type SSLKeySlice = GenericSlice<SSLKeyState, SSLKey, SSLKeyReducers>;
-
-const sslKeySlice = generateSlice<
-  SSLKey,
-  SSLKeyState["errors"],
-  SSLKeyReducers,
-  "id"
->({
-  indexKey: "id",
-  name: "sslkey",
-}) as SSLKeySlice;
+const sslKeySlice = createSlice({
+  name: SSLKeyMeta.MODEL,
+  initialState: genericInitialState as SSLKeyState,
+  reducers: generateCommonReducers<
+    SSLKeyState,
+    SSLKeyMeta.PK,
+    CreateParams,
+    void
+  >(SSLKeyMeta.MODEL, SSLKeyMeta.PK),
+});
 
 export const { actions } = sslKeySlice;
 

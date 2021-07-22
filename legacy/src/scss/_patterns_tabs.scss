@@ -25,7 +25,8 @@
       right: $grid-margin-width;
       $chevron-font-size: 2rem;
       $chevron-width-at-1rem: 4.4; // in px
-      $chevron-rendered-width: $chevron-font-size * $chevron-width-at-1rem / 16; // divide by 16 to account for units (1 rem == 16px)
+      $chevron-rendered-width: $chevron-font-size *
+        math.div($chevron-width-at-1rem, 16); // divide by 16 to account for units (1 rem == 16px)
       width: $chevron-rendered-width + $sph-inner--large; // spacing used in buttons + width of symbol
       z-index: 1;
     }
@@ -62,5 +63,11 @@
         @include vf-highlight-bar($color-mid-dark, bottom, true);
       }
     }
+  }
+  // 20-07-2021 Huw: Stop the tabs appearing over the hr border.
+  // https://github.com/canonical-web-and-design/vanilla-framework/issues/3878
+  hr.u-no-margin--bottom + .p-tabs__list {
+    // Account for the -1px on the bottom margin of the <hr>.
+    margin-top: 1px;
   }
 }

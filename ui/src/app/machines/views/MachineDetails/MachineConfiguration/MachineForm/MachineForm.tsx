@@ -2,19 +2,17 @@ import { useCallback, useEffect, useState } from "react";
 
 import { Button, Col, Row, Spinner } from "@canonical/react-components";
 import { usePrevious } from "@canonical/react-components/dist/hooks";
-import type { FormikContextType } from "formik";
 import { useDispatch, useSelector } from "react-redux";
 import type { SchemaOf } from "yup";
 import * as Yup from "yup";
 
 import MachineFormFields from "./MachineFormFields";
 
-import FormCardButtons from "app/base/components/FormCardButtons";
 import FormikForm from "app/base/components/FormikForm";
 import { actions as machineActions } from "app/store/machine";
 import machineSelectors from "app/store/machine/selectors";
 import type { MachineDetails } from "app/store/machine/types";
-import { useCanEdit } from "app/store/machine/utils";
+import { isMachineDetails, useCanEdit } from "app/store/machine/utils";
 import type { RootState } from "app/store/root/types";
 import { actions as tagActions } from "app/store/tag";
 
@@ -64,7 +62,7 @@ const MachineForm = ({ systemId }: Props): JSX.Element | null => {
     dispatch(tagActions.fetch());
   }, [dispatch]);
 
-  if (machine && "min_hwe_kernel" in machine) {
+  if (isMachineDetails(machine)) {
     return (
       <>
         <Row>
@@ -85,7 +83,6 @@ const MachineForm = ({ systemId }: Props): JSX.Element | null => {
           </Col>
         </Row>
         <FormikForm<MachineFormValues>
-          buttons={FormCardButtons}
           cleanup={cleanup}
           editable={editing}
           // Only show machine errors if form is in editing state.
@@ -103,13 +100,12 @@ const MachineForm = ({ systemId }: Props): JSX.Element | null => {
             category: "Machine details",
             label: "Save changes",
           }}
-          onCancel={(formikContext: FormikContextType<MachineFormValues>) => {
-            const { initialValues, resetForm } = formikContext;
+          onCancel={(_, { initialValues, resetForm }) => {
             resetForm({ values: initialValues });
             setEditing(false);
             dispatch(machineActions.cleanup());
           }}
-          onSubmit={(values: MachineFormValues) => {
+          onSubmit={(values) => {
             const params = {
               architecture: values.architecture,
               description: values.description,
@@ -123,7 +119,6 @@ const MachineForm = ({ systemId }: Props): JSX.Element | null => {
             };
             dispatch(machineActions.update(params));
           }}
-          resetOnSave
           saved={saved}
           saving={saving}
           submitLabel="Save changes"

@@ -7,8 +7,8 @@ import * as Yup from "yup";
 import CommissionFormFields from "./CommissionFormFields";
 
 import ActionForm from "app/base/components/ActionForm";
+import type { ClearSelectedAction } from "app/base/types";
 import { useMachineActionForm } from "app/machines/hooks";
-import type { MachineAction } from "app/store/general/types";
 import { actions as machineActions } from "app/store/machine";
 import machineSelectors from "app/store/machine/selectors";
 import { actions as scriptActions } from "app/store/script";
@@ -54,17 +54,17 @@ export type CommissionFormValues = {
   configureHBA: boolean;
   commissioningScripts: Script[];
   testingScripts: Script[];
-  scriptInputs: ScriptInput[];
+  scriptInputs: ScriptInput;
 };
 
 type Props = {
   actionDisabled?: boolean;
-  setSelectedAction: (action: MachineAction | null, deselect?: boolean) => void;
+  clearSelectedAction: ClearSelectedAction;
 };
 
 export const CommissionForm = ({
   actionDisabled,
-  setSelectedAction,
+  clearSelectedAction,
 }: Props): JSX.Element => {
   const dispatch = useDispatch();
   const activeMachine = useSelector(machineSelectors.active);
@@ -82,9 +82,10 @@ export const CommissionForm = ({
     NodeActions.COMMISSION
   );
 
-  const preselectedTestingScripts = [
-    testingScripts.find((script) => script.name === "smartctl-validate"),
-  ].filter(Boolean);
+  const testingScript = testingScripts.find(
+    (script) => script.name === "smartctl-validate"
+  );
+  const preselectedTestingScripts = testingScript ? [testingScript] : [];
 
   const initialScriptInputs = urlScripts.reduce<ScriptInput>(
     (scriptInputs, script) => {
@@ -105,12 +106,12 @@ export const CommissionForm = ({
   }, [dispatch]);
 
   return (
-    <ActionForm
+    <ActionForm<CommissionFormValues>
       actionDisabled={actionDisabled}
       actionName={NodeActions.COMMISSION}
       allowUnchanged
       cleanup={machineActions.cleanup}
-      clearSelectedAction={() => setSelectedAction(null, true)}
+      clearSelectedAction={clearSelectedAction}
       errors={errors}
       initialValues={{
         enableSSH: false,
@@ -130,7 +131,7 @@ export const CommissionForm = ({
         category: `Machine ${activeMachine ? "details" : "list"} action form`,
         label: "Commission",
       }}
-      onSubmit={(values: CommissionFormValues) => {
+      onSubmit={(values) => {
         const {
           enableSSH,
           skipBMCConfig,
@@ -144,8 +145,8 @@ export const CommissionForm = ({
         } = values;
         machinesToAction.forEach((machine) => {
           dispatch(
-            machineActions.commission(
-              machine.system_id,
+            machineActions.commission({
+              systemId: machine.system_id,
               enableSSH,
               skipBMCConfig,
               skipNetworking,
@@ -154,8 +155,8 @@ export const CommissionForm = ({
               configureHBA,
               commissioningScripts,
               testingScripts,
-              scriptInputs
-            )
+              scriptInputs,
+            })
           );
         });
       }}
@@ -174,7 +175,7 @@ export const CommissionForm = ({
 };
 
 CommissionForm.propTypes = {
-  setSelectedAction: PropTypes.func.isRequired,
+  clearSelectedAction: PropTypes.func.isRequired,
 };
 
 export default CommissionForm;

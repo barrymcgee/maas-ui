@@ -1,27 +1,27 @@
-import type { SliceCaseReducers } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 
-import type { GenericSlice } from "../utils";
-import { generateSlice } from "../utils";
-
-import type { PackageRepository, PackageRepositoryState } from "./types";
-
-type PackageRepositoryReducers = SliceCaseReducers<PackageRepositoryState>;
-
-export type PackageRepositorySlice = GenericSlice<
+import { PackageRepositoryMeta } from "./types";
+import type {
+  CreateParams,
   PackageRepositoryState,
-  PackageRepository,
-  PackageRepositoryReducers
->;
+  UpdateParams,
+} from "./types";
 
-const packageRepositorySlice = generateSlice<
-  PackageRepository,
-  PackageRepositoryState["errors"],
-  PackageRepositoryReducers,
-  "id"
->({
-  indexKey: "id",
-  name: "packagerepository",
-}) as PackageRepositorySlice;
+import {
+  generateCommonReducers,
+  genericInitialState,
+} from "app/store/utils/slice";
+
+const packageRepositorySlice = createSlice({
+  name: PackageRepositoryMeta.MODEL,
+  initialState: genericInitialState as PackageRepositoryState,
+  reducers: generateCommonReducers<
+    PackageRepositoryState,
+    PackageRepositoryMeta.PK,
+    CreateParams,
+    UpdateParams
+  >(PackageRepositoryMeta.MODEL, PackageRepositoryMeta.PK),
+});
 
 export const { actions } = packageRepositorySlice;
 

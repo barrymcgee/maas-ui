@@ -31,13 +31,8 @@ export const StorageTable = ({ defaultDisk }: Props): JSX.Element => {
     podSelectors.getById(state, Number(id))
   );
   const composingPods = useSelector(podSelectors.composing);
-  const {
-    handleChange,
-    setFieldTouched,
-    setFieldValue,
-    touched,
-    values,
-  } = useFormikContext<ComposeFormValues>();
+  const { handleChange, setFieldTouched, setFieldValue, touched, values } =
+    useFormikContext<ComposeFormValues>();
   const { bootDisk, disks } = values;
 
   // Ensure initial disk is always validated correctly.
@@ -115,6 +110,7 @@ export const StorageTable = ({ defaultDisk }: Props): JSX.Element => {
                           setFieldValue(`disks[${i}].size`, value);
                         }
                       }}
+                      step="any"
                       type="number"
                     />
                   </TableCell>
@@ -155,7 +151,9 @@ export const StorageTable = ({ defaultDisk }: Props): JSX.Element => {
                         disks.length === 1 || !!composingPods.length
                       }
                       deleteTooltip={
-                        disks.length === 1 && "At least one disk is required."
+                        disks.length === 1
+                          ? "At least one disk is required."
+                          : null
                       }
                       onDelete={() => removeDisk(disk.id)}
                     />

@@ -16,13 +16,13 @@ import TagField from "app/base/components/TagField";
 import { BondMode } from "app/store/general/types";
 import machineSelectors from "app/store/machine/selectors";
 import type { Machine } from "app/store/machine/types";
-import { NetworkInterfaceTypes } from "app/store/machine/types";
 import {
   getInterfaceById,
   getInterfaceName,
   getLinkFromNic,
 } from "app/store/machine/utils";
 import type { RootState } from "app/store/root/types";
+import { NetworkInterfaceTypes } from "app/store/types/enum";
 
 type Props = {
   selected: Selected[];
@@ -51,11 +51,8 @@ const BondFormFields = ({ selected, systemId }: Props): JSX.Element | null => {
   const machine = useSelector((state: RootState) =>
     machineSelectors.getById(state, systemId)
   );
-  const {
-    handleChange,
-    setFieldValue,
-    values,
-  } = useFormikContext<BondFormValues>();
+  const { handleChange, setFieldValue, values } =
+    useFormikContext<BondFormValues>();
   if (!machine) {
     return null;
   }
@@ -63,7 +60,7 @@ const BondFormFields = ({ selected, systemId }: Props): JSX.Element | null => {
     BondMode.BALANCE_XOR,
     BondMode.LINK_AGGREGATION,
     BondMode.BALANCE_TLB,
-  ].includes(values.bond_mode);
+  ].includes(values.bond_mode as BondMode);
   const showLACPRate = values.bond_mode === BondMode.LINK_AGGREGATION;
   const showMonitoring = values.linkMonitoring === LinkMonitoring.MII;
   return (
@@ -73,7 +70,7 @@ const BondFormFields = ({ selected, systemId }: Props): JSX.Element | null => {
         <BondModeSelect defaultOption={null} name="bond_mode" required />
         {showHashPolicy && (
           <HashPolicySelect
-            bondMode={values.bond_mode}
+            bondMode={values.bond_mode as BondMode}
             defaultOption={null}
             name="bond_xmit_hash_policy"
           />

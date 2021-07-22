@@ -9,13 +9,16 @@ import { useWindowTitle } from "app/base/hooks";
 import SettingsTable from "app/settings/components/SettingsTable";
 import TableActions from "app/base/components/TableActions";
 import TableDeleteConfirm from "app/base/components/TableDeleteConfirm";
+import settingsURLs from "app/settings/urls";
 
 const generateRepositoryRows = (
   dispatch,
   expandedId,
   repositories,
   setDeletedRepo,
-  setExpandedId
+  setExpandedId,
+  saved,
+  saving
 ) =>
   repositories.map((repo) => {
     const name = getRepoDisplayName(repo);
@@ -38,7 +41,7 @@ const generateRepositoryRows = (
             <TableActions
               deleteDisabled={repo.default}
               deleteTooltip={repo.default && "Default repos cannot be deleted."}
-              editPath={`/settings/repositories/edit/${type}/${repo.id}`}
+              editPath={settingsURLs.repositories.edit({ id: repo.id, type })}
               onDelete={() => setExpandedId(repo.id)}
             />
           ),
@@ -48,13 +51,14 @@ const generateRepositoryRows = (
       expanded: expanded,
       expandedContent: expanded && (
         <TableDeleteConfirm
+          deleted={saved}
+          deleting={saving}
           modelName={repo.name}
           modelType="repository"
-          onCancel={setExpandedId}
+          onClose={setExpandedId}
           onConfirm={() => {
             dispatch(repositoryActions.delete(repo.id));
             setDeletedRepo(repo.name);
-            setExpandedId();
           }}
         />
       ),
@@ -74,6 +78,7 @@ export const Repositories = () => {
   const loaded = useSelector(repositorySelectors.loaded);
   const loading = useSelector(repositorySelectors.loading);
   const saved = useSelector(repositorySelectors.saved);
+  const saving = useSelector(repositorySelectors.saving);
   const repositories = useSelector((state) =>
     repositorySelectors.search(state, searchText)
   );
@@ -101,10 +106,13 @@ export const Repositories = () => {
   return (
     <SettingsTable
       buttons={[
-        { label: "Add PPA", url: "/settings/repositories/add/ppa" },
+        {
+          label: "Add PPA",
+          url: settingsURLs.repositories.add({ type: "ppa" }),
+        },
         {
           label: "Add repository",
-          url: "/settings/repositories/add/repository",
+          url: settingsURLs.repositories.add({ type: "repository" }),
         },
       ]}
       defaultSort="id"
@@ -121,7 +129,9 @@ export const Repositories = () => {
         expandedId,
         repositories,
         setDeletedRepo,
-        setExpandedId
+        setExpandedId,
+        saved,
+        saving
       )}
       searchOnChange={setSearchText}
       searchPlaceholder="Search package repositories"

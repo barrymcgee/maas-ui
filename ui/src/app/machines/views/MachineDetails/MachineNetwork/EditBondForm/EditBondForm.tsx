@@ -8,12 +8,15 @@ import BondFormFields from "../BondForm/BondFormFields";
 import ToggleMembers from "../BondForm/ToggleMembers";
 import type { BondFormValues } from "../BondForm/types";
 import { LinkMonitoring, MacSource } from "../BondForm/types";
-import { getParentIds, getValidNics, preparePayload } from "../BondForm/utils";
+import {
+  getParentIds,
+  getValidNics,
+  prepareBondPayload,
+} from "../BondForm/utils";
 import InterfaceFormTable from "../InterfaceFormTable";
 import { networkFieldsSchema } from "../NetworkFields/NetworkFields";
 import type { Selected, SetSelected } from "../NetworkTable/types";
 
-import FormCardButtons from "app/base/components/FormCardButtons";
 import FormikForm from "app/base/components/FormikForm";
 import { MAC_ADDRESS_REGEX } from "app/base/validation";
 import { useMachineDetailsForm } from "app/machines/hooks";
@@ -28,18 +31,19 @@ import { actions as machineActions } from "app/store/machine";
 import machineSelectors from "app/store/machine/selectors";
 import type {
   MachineDetails,
-  NetworkInterface,
-  NetworkLink,
+  UpdateInterfaceParams,
 } from "app/store/machine/types";
 import {
   getInterfaceIPAddress,
   getInterfaceSubnet,
   getLinkMode,
+  isMachineDetails,
   useIsAllNetworkingDisabled,
 } from "app/store/machine/utils";
 import type { RootState } from "app/store/root/types";
 import { actions as subnetActions } from "app/store/subnet";
 import subnetSelectors from "app/store/subnet/selectors";
+import type { NetworkInterface, NetworkLink } from "app/store/types/node";
 import { actions as vlanActions } from "app/store/vlan";
 import vlanSelectors from "app/store/vlan/selectors";
 import { arrayItemsEqual } from "app/utils";
@@ -124,8 +128,7 @@ const EditBondForm = ({
 
   if (
     !nic ||
-    !machine ||
-    !("interfaces" in machine) ||
+    !isMachineDetails(machine) ||
     !vlansLoaded ||
     !fabricsLoaded ||
     !subnetsLoaded
@@ -159,20 +162,19 @@ const EditBondForm = ({
   const membersHaveChanged = !arrayItemsEqual(selectedIds, nic.parents);
   const macAddress = nic.mac_address || "";
   return (
-    <FormikForm
+    <FormikForm<BondFormValues>
       allowUnchanged={membersHaveChanged}
-      buttons={FormCardButtons}
       cleanup={cleanup}
       errors={errors}
       initialValues={{
-        bond_downdelay: nic.params?.bond_downdelay,
-        bond_lacp_rate: nic.params?.bond_lacp_rate,
-        bond_miimon: nic.params?.bond_miimon,
-        bond_mode: nic.params?.bond_mode,
-        bond_updelay: nic.params?.bond_updelay,
-        bond_xmit_hash_policy: nic.params?.bond_xmit_hash_policy,
+        bond_downdelay: nic.params?.bond_downdelay || 0,
+        bond_lacp_rate: nic.params?.bond_lacp_rate || "",
+        bond_miimon: nic.params?.bond_miimon || 0,
+        bond_mode: nic.params?.bond_mode || BondMode.ACTIVE_BACKUP,
+        bond_updelay: nic.params?.bond_updelay || 0,
+        bond_xmit_hash_policy: nic.params?.bond_xmit_hash_policy || "",
         fabric: vlan ? vlan.fabric : "",
-        ip_address: ipAddress,
+        ip_address: ipAddress || "",
         linkMonitoring,
         mac_address: macAddress,
         macSource: MacSource.MANUAL,
@@ -189,11 +191,24 @@ const EditBondForm = ({
         label: "Edit bond form",
       }}
       onCancel={closeForm}
-      onSubmit={(values: BondFormValues) => {
+      onSubmit={(values) => {
         // Clear the errors from the previous submission.
         dispatch(cleanup());
-        const payload = preparePayload(values, selected, systemId, nic, link);
-        dispatch(machineActions.updateInterface(payload));
+        const payload = prepareBondPayload(
+          values,
+          selected,
+          systemId,
+          nic,
+          link
+        );
+        if (payload.interface_id !== undefined) {
+          dispatch(
+            machineActions.updateInterface({
+              ...payload,
+              interface_id: payload.interface_id,
+            } as UpdateInterfaceParams)
+          );
+        }
       }}
       resetOnSave
       saved={saved}

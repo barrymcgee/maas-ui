@@ -8,11 +8,8 @@ import { LinkMonitoring } from "../BondForm/types";
 import AddBondForm from "./AddBondForm";
 
 import { BondMode } from "app/store/general/types";
-import {
-  NetworkInterfaceTypes,
-  NetworkLinkMode,
-} from "app/store/machine/types";
 import type { RootState } from "app/store/root/types";
+import { NetworkInterfaceTypes, NetworkLinkMode } from "app/store/types/enum";
 import {
   fabricState as fabricStateFactory,
   machineDetails as machineDetailsFactory,
@@ -61,6 +58,23 @@ describe("AddBondForm", () => {
   });
 
   it("displays a table", async () => {
+    state.machine.items = [
+      machineDetailsFactory({
+        interfaces: [
+          machineInterfaceFactory({
+            id: 9,
+            type: NetworkInterfaceTypes.PHYSICAL,
+            vlan_id: 1,
+          }),
+          machineInterfaceFactory({
+            id: 10,
+            type: NetworkInterfaceTypes.PHYSICAL,
+            vlan_id: 1,
+          }),
+        ],
+        system_id: "abc123",
+      }),
+    ];
     const store = mockStore(state);
     const wrapper = mount(
       <Provider store={store}>
@@ -69,7 +83,7 @@ describe("AddBondForm", () => {
         >
           <AddBondForm
             close={jest.fn()}
-            selected={[]}
+            selected={[{ nicId: 9 }, { nicId: 10 }]}
             setSelected={jest.fn()}
             systemId="abc123"
           />
@@ -283,7 +297,34 @@ describe("AddBondForm", () => {
       </Provider>
     );
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find("Spinner").exists()).toBe(true);
+    expect(wrapper.find("Spinner[data-test='data-loading']").exists()).toBe(
+      true
+    );
+  });
+
+  it("displays a spinner if the VLAN hasn't been set", async () => {
+    state.fabric.loaded = true;
+    state.subnet.loaded = true;
+    state.vlan.loaded = true;
+    const store = mockStore(state);
+    const wrapper = mount(
+      <Provider store={store}>
+        <MemoryRouter
+          initialEntries={[{ pathname: "/machines", key: "testKey" }]}
+        >
+          <AddBondForm
+            close={jest.fn()}
+            selected={[]}
+            setSelected={jest.fn()}
+            systemId="abc123"
+          />
+        </MemoryRouter>
+      </Provider>
+    );
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find("Spinner[data-test='data-loading']").exists()).toBe(
+      true
+    );
   });
 
   it("can dispatch an action to add a bond", async () => {

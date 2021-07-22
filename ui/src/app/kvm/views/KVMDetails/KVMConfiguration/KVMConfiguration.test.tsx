@@ -4,11 +4,9 @@ import { Provider } from "react-redux";
 import { MemoryRouter, Route } from "react-router-dom";
 import configureStore from "redux-mock-store";
 
-import { KVMAction } from "../KVMDetails";
-
 import KVMConfiguration from "./KVMConfiguration";
 
-import { PodType } from "app/store/pod/types";
+import { PodAction, PodType } from "app/store/pod/types";
 import type { RootState } from "app/store/root/types";
 import {
   pod as podFactory,
@@ -98,7 +96,7 @@ describe("KVMConfiguration", () => {
     );
 
     wrapper.find("button[data-test='remove-kvm']").simulate("click");
-    expect(setSelectedAction).toHaveBeenCalledWith(KVMAction.DELETE);
+    expect(setSelectedAction).toHaveBeenCalledWith(PodAction.DELETE);
   });
 
   it("can handle updating a lxd KVM", () => {
@@ -149,11 +147,11 @@ describe("KVMConfiguration", () => {
           id: 1,
           memory_over_commit_ratio: 2,
           password: "password", // lxd uses password key
-          pool: "1",
+          pool: 1,
           power_address: "192.168.1.1",
           power_pass: undefined,
           tags: "tag1,tag2",
-          zone: "2",
+          zone: 2,
         },
       },
     });
@@ -207,11 +205,11 @@ describe("KVMConfiguration", () => {
           id: 1,
           memory_over_commit_ratio: 2,
           password: undefined,
-          pool: "1",
+          pool: 1,
           power_address: "192.168.1.1",
           power_pass: "password", // virsh uses power_pass key
           tags: "tag1,tag2",
-          zone: "2",
+          zone: 2,
         },
       },
     });

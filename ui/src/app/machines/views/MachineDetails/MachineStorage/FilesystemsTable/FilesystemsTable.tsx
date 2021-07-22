@@ -17,7 +17,12 @@ import type {
   Machine,
   Partition,
 } from "app/store/machine/types";
-import { formatSize, isMounted, usesStorage } from "app/store/machine/utils";
+import {
+  formatSize,
+  isMachineDetails,
+  isMounted,
+  usesStorage,
+} from "app/store/machine/utils";
 import type { RootState } from "app/store/root/types";
 
 export enum FilesystemAction {
@@ -50,7 +55,8 @@ const normaliseRowData = (
   fs: Filesystem,
   storageDevice: Disk | Partition | null,
   expanded: Expanded | null,
-  setExpanded: (expanded: Expanded | null) => void
+  setExpanded: (expanded: Expanded | null) => void,
+  canEditStorage: Props["canEditStorage"]
 ) => {
   const isExpanded = expanded?.id === rowId && Boolean(expanded?.content);
 
@@ -77,6 +83,7 @@ const normaliseRowData = (
                 type: FilesystemAction.DELETE,
               },
             ]}
+            disabled={!canEditStorage}
             onActionClick={(action: FilesystemAction) =>
               setExpanded({ content: action, id: rowId })
             }
@@ -102,7 +109,7 @@ const FilesystemsTable = ({
 
   const closeAddSpecialForm = () => setAddSpecialFormOpen(false);
 
-  if (machine && "disks" in machine && "special_filesystems" in machine) {
+  if (isMachineDetails(machine)) {
     const rows = machine.disks.reduce<TSFixMe[]>((rows, disk) => {
       const diskFs = disk.filesystem;
 
@@ -110,7 +117,14 @@ const FilesystemsTable = ({
         const rowId = `${diskFs.fstype}-${diskFs.id}`;
 
         rows.push({
-          ...normaliseRowData(rowId, diskFs, disk, expanded, setExpanded),
+          ...normaliseRowData(
+            rowId,
+            diskFs,
+            disk,
+            expanded,
+            setExpanded,
+            canEditStorage
+          ),
           expandedContent: (
             <div className="u-flex--grow">
               {expanded?.content === FilesystemAction.DELETE && (
@@ -182,7 +196,8 @@ const FilesystemsTable = ({
                 partitionFs,
                 partition,
                 expanded,
-                setExpanded
+                setExpanded,
+                canEditStorage
               ),
               expandedContent: (
                 <div className="u-flex--grow">
@@ -250,7 +265,14 @@ const FilesystemsTable = ({
         const rowId = `${specialFs.fstype}-${specialFs.id}`;
 
         rows.push({
-          ...normaliseRowData(rowId, specialFs, null, expanded, setExpanded),
+          ...normaliseRowData(
+            rowId,
+            specialFs,
+            null,
+            expanded,
+            setExpanded,
+            canEditStorage
+          ),
           expandedContent: (
             <div className="u-flex--grow">
               {expanded?.content === FilesystemAction.DELETE && (

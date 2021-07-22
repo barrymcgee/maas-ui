@@ -9,18 +9,15 @@ import { ExpandedState } from "../types";
 
 import { actions as machineActions } from "app/store/machine";
 import machineSelectors from "app/store/machine/selectors";
-import { NetworkInterfaceTypes } from "app/store/machine/types";
-import type {
-  Machine,
-  NetworkInterface,
-  NetworkLink,
-} from "app/store/machine/types";
+import type { Machine } from "app/store/machine/types";
 import {
   getLinkInterface,
   getRemoveTypeText,
   isAlias,
 } from "app/store/machine/utils";
 import type { RootState } from "app/store/root/types";
+import { NetworkInterfaceTypes } from "app/store/types/enum";
+import type { NetworkInterface, NetworkLink } from "app/store/types/node";
 
 type Props = {
   expanded: Expanded | null;
@@ -61,14 +58,16 @@ const NetworkTableConfirmation = ({
         onConfirm={() => {
           dispatch(machineActions.cleanup());
           if (isAnAlias) {
-            dispatch(
-              machineActions.unlinkSubnet({
-                interfaceId: nic?.id,
-                linkId: link?.id,
-                systemId: machine.system_id,
-              })
-            );
-          } else {
+            if (nic?.id && link?.id) {
+              dispatch(
+                machineActions.unlinkSubnet({
+                  interfaceId: nic?.id,
+                  linkId: link?.id,
+                  systemId: machine.system_id,
+                })
+              );
+            }
+          } else if (nic?.id) {
             dispatch(
               machineActions.deleteInterface({
                 interfaceId: nic?.id,
@@ -100,13 +99,15 @@ const NetworkTableConfirmation = ({
       showDisconnectedWarning;
     const event = markConnected ? "connected" : "disconnected";
     const updateConnection = () => {
-      dispatch(
-        machineActions.updateInterface({
-          interface_id: nic?.id,
-          link_connected: !!markConnected,
-          system_id: machine.system_id,
-        })
-      );
+      if (nic?.id) {
+        dispatch(
+          machineActions.updateInterface({
+            interface_id: nic?.id,
+            link_connected: !!markConnected,
+            system_id: machine.system_id,
+          })
+        );
+      }
     };
     let message: ReactNode;
     if (showDisconnectedWarning) {

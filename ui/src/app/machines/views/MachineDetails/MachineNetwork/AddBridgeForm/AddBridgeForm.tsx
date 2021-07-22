@@ -15,22 +15,21 @@ import type { Selected } from "../NetworkTable/types";
 import type { BridgeFormValues } from "./types";
 
 import FormCard from "app/base/components/FormCard";
-import FormCardButtons from "app/base/components/FormCardButtons";
 import FormikForm from "app/base/components/FormikForm";
 import { MAC_ADDRESS_REGEX } from "app/base/validation";
 import { useMachineDetailsForm } from "app/machines/hooks";
 import { actions as machineActions } from "app/store/machine";
 import machineSelectors from "app/store/machine/selectors";
 import type {
-  Machine,
+  CreateBridgeParams,
   MachineDetails,
-  NetworkInterface,
 } from "app/store/machine/types";
-import { BridgeType, NetworkInterfaceTypes } from "app/store/machine/types";
-import { getNextNicName } from "app/store/machine/utils";
+import { getNextNicName, isMachineDetails } from "app/store/machine/utils";
 import type { RootState } from "app/store/root/types";
+import { BridgeType, NetworkInterfaceTypes } from "app/store/types/enum";
 import { actions as vlanActions } from "app/store/vlan";
 import vlanSelectors from "app/store/vlan/selectors";
+import { preparePayload } from "app/utils";
 
 const InterfaceSchema = Yup.object().shape({
   ...networkFieldsSchema,
@@ -85,16 +84,15 @@ const AddBridgeForm = ({
     return null;
   }
 
-  if (vlansLoading || !nic || !machine || !("interfaces" in machine)) {
+  if (vlansLoading || !nic || !isMachineDetails(machine)) {
     return <Spinner text="Loading..." />;
   }
 
   return (
     <FormCard sidebar={false} stacked title="Create bridge">
       <InterfaceFormTable interfaces={selected} systemId={systemId} />
-      <FormikForm
+      <FormikForm<BridgeFormValues>
         allowUnchanged
-        buttons={FormCardButtons}
         cleanup={cleanup}
         errors={errors}
         initialValues={{
@@ -103,9 +101,9 @@ const AddBridgeForm = ({
           bridge_stp: false,
           bridge_type: BridgeType.STANDARD,
           // Prefill the fabric from the parent interface.
-          fabric: vlan?.fabric,
+          fabric: vlan?.fabric || "",
           mac_address: nic.mac_address,
-          name: nextName,
+          name: nextName || "",
           tags: [],
           // Prefill the vlan from the parent interface.
           vlan: nic.vlan_id,
@@ -116,24 +114,14 @@ const AddBridgeForm = ({
           label: "Create bridge form",
         }}
         onCancel={close}
-        onSubmit={(values: BridgeFormValues) => {
+        onSubmit={(values) => {
           // Clear the errors from the previous submission.
           dispatch(cleanup());
-          type Payload = BridgeFormValues & {
-            parents: NetworkInterface["parents"];
-            system_id: Machine["system_id"];
-          };
-          const payload: Payload = {
+          const payload = preparePayload({
             ...values,
             parents: [nic.id],
             system_id: systemId,
-          };
-          // Remove all empty values.
-          Object.entries(payload).forEach(([key, value]) => {
-            if (value === "") {
-              delete payload[key as keyof Payload];
-            }
-          });
+          }) as CreateBridgeParams;
           dispatch(machineActions.createBridge(payload));
         }}
         resetOnSave

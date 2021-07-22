@@ -4,14 +4,17 @@ import * as Yup from "yup";
 import CreateRaidFields from "./CreateRaidFields";
 
 import FormCard from "app/base/components/FormCard";
-import FormCardButtons from "app/base/components/FormCardButtons";
 import FormikForm from "app/base/components/FormikForm";
 import { useMachineDetailsForm } from "app/machines/hooks";
 import { actions as machineActions } from "app/store/machine";
 import machineSelectors from "app/store/machine/selectors";
 import type { Disk, Machine, Partition } from "app/store/machine/types";
 import { DiskTypes } from "app/store/machine/types";
-import { isRaid, splitDiskPartitionIds } from "app/store/machine/utils";
+import {
+  isMachineDetails,
+  isRaid,
+  splitDiskPartitionIds,
+} from "app/store/machine/utils";
 import type { RootState } from "app/store/root/types";
 
 export type CreateRaidValues = {
@@ -80,16 +83,14 @@ export const CreateRaid = ({
     "createRaid",
     () => closeForm()
   );
-  const [initialBlockDevices, initialPartitions] = splitDiskPartitionIds(
-    selected
-  );
+  const [initialBlockDevices, initialPartitions] =
+    splitDiskPartitionIds(selected);
 
-  if (machine && "disks" in machine) {
+  if (isMachineDetails(machine)) {
     return (
       <FormCard sidebar={false}>
-        <FormikForm
+        <FormikForm<CreateRaidValues>
           allowUnchanged
-          buttons={FormCardButtons}
           cleanup={machineActions.cleanup}
           errors={errors}
           initialValues={{
@@ -110,7 +111,7 @@ export const CreateRaid = ({
             category: "Machine storage",
             label: "Create RAID",
           }}
-          onSubmit={(values: CreateRaidValues) => {
+          onSubmit={(values) => {
             const {
               blockDeviceIds,
               fstype,

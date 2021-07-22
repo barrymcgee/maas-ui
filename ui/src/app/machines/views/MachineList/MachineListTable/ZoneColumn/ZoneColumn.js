@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { memo, useEffect, useState } from "react";
 import PropTypes from "prop-types";
 
+import baseURLs from "app/base/urls";
 import { actions as machineActions } from "app/store/machine";
 import machineSelectors from "app/store/machine/selectors";
 import { NodeActions } from "app/store/types/node";
@@ -41,7 +42,7 @@ export const ZoneColumn = ({ onToggleMenu, systemId }) => {
       zoneLinks = zoneLinks.map((zone) => ({
         children: zone.name,
         onClick: () => {
-          dispatch(machineActions.setZone(systemId, zone.id));
+          dispatch(machineActions.setZone({ systemId, zoneId: zone.id }));
           setUpdating(zone.id);
         },
       }));
@@ -68,11 +69,11 @@ export const ZoneColumn = ({ onToggleMenu, systemId }) => {
       primary={
         <span data-test="zone">
           {updating !== null ? (
-            <Spinner className="u-no-margin u-no-padding--left" inline />
+            <Spinner className="u-nudge-left--small" />
           ) : null}
           <LegacyLink
             className="p-link--soft"
-            route={`/zone/${machine.zone.id}`}
+            route={baseURLs.zone({ id: machine.zone.id })}
           >
             {machine.zone.name}
           </LegacyLink>

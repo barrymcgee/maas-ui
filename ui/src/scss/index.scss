@@ -1,3 +1,5 @@
+@use 'sass:math';
+
 // Import settings
 @import "./settings";
 
@@ -67,6 +69,7 @@
 // base
 @import "~app/base/components/ColumnToggle";
 @import "~app/base/components/DoughnutChart";
+@import "~app/base/components/FilterAccordion";
 @import "~app/base/components/FormCard";
 @import "~app/base/components/LabelledList";
 @import "~app/base/components/Login";
@@ -74,10 +77,12 @@
 @import "~app/base/components/Placeholder";
 @import "~app/base/components/Popover";
 @import "~app/base/components/Section";
+@import "~app/base/components/SSHKeyList";
 @import "~app/base/components/TableMenu";
 @import "~app/base/components/TagSelector";
 @include ColumnToggle;
 @include DoughnutChart;
+@include FilterAccordion;
 @include FormCard;
 @include LabelledList;
 @include Login;
@@ -85,8 +90,17 @@
 @include Placeholder;
 @include Popover;
 @include Section;
+@include SSHKeyList;
 @include TableMenu;
 @include TagSelector;
+
+// images
+@import "~app/images/components/ImagesTable";
+@include ImagesTable;
+
+// intro
+@import "~app/intro/views/MaasIntro";
+@include MaasIntro;
 
 // kvm
 @import "~app/kvm/components/KVMActionFormWrapper/ComposeForm/InterfacesTable";
@@ -146,11 +160,14 @@
 @include VMsActionBar;
 @include VMsTable;
 
+// Dashboard
+@import "~app/dashboard/views/DiscoveriesList";
+@include DiscoveriesList;
+
 // machines
 @import "~app/machines/components/ActionFormWrapper/MarkBrokenForm/MarkBrokenFormFields";
 @import "~app/machines/components/TakeActionMenu";
 @import "~app/machines/views/MachineList";
-@import "~app/machines/views/MachineList/MachineListControls/FilterAccordion";
 @import "~app/machines/views/MachineDetails/MachineHeader/MachineName";
 @import "~app/machines/views/MachineDetails/MachineLogs/EventLogs/EventLogsTable";
 @import "~app/machines/views/MachineDetails/MachineNetwork/DHCPTable";
@@ -164,7 +181,6 @@
 @import "~app/machines/views/MachineDetails/NodeDevices";
 @include DownloadMenu;
 @include EventLogsTable;
-@include FilterAccordion;
 @include MachineDHCPTable;
 @include MachineList;
 @include MachineName;
@@ -180,11 +196,9 @@
 
 // preferences
 @import "~app/preferences/views/APIKeys/APIKeyList";
-@import "~app/preferences/views/SSHKeys/SSHKeyList";
 @import "~app/preferences/views/SSLKeys/AddSSLKey";
 @import "~app/preferences/views/SSLKeys/SSLKeyList";
 @include APIKeyList;
-@include SSHKeyList;
 @include AddSSLKey;
 @include SSLKeyList;
 

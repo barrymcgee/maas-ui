@@ -1,12 +1,10 @@
-import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
 import { Spinner, Strip } from "@canonical/react-components";
 
-import FormCardButtons from "app/base/components/FormCardButtons";
+import type { FormikFormProps } from "app/base/components/FormikForm";
 import FormikForm from "app/base/components/FormikForm";
 import { useProcessing } from "app/base/hooks";
-import type { AnalyticsEvent, TSFixMe } from "app/base/types";
 import { NodeActions } from "app/store/types/node";
 import { formatErrors } from "app/utils";
 
@@ -90,49 +88,31 @@ const getLabel = (
   }
 };
 
-export type Props = {
+export type Props<V> = FormikFormProps<V> & {
   actionDisabled?: boolean;
   actionName?: string;
-  allowUnchanged?: boolean;
-  allowAllEmpty?: boolean;
-  children?: ReactNode;
-  cleanup?: () => void;
   clearSelectedAction?: (...args: unknown[]) => void;
-  errors?: { [x: string]: TSFixMe } | null;
-  initialValues?: { [x: string]: TSFixMe };
   loaded?: boolean;
-  loading?: boolean;
   modelName: string;
-  onSaveAnalytics?: AnalyticsEvent;
-  onSubmit: (...args: unknown[]) => void;
   onSuccess?: () => void;
   processingCount?: number;
   selectedCount?: number;
-  submitAppearance?: string;
-  validationSchema?: TSFixMe;
 };
 
-const ActionForm = ({
+const ActionForm = <V,>({
   actionDisabled,
   actionName,
-  allowUnchanged = false,
-  allowAllEmpty = false,
   children,
-  cleanup,
   clearSelectedAction,
   errors,
-  initialValues = {},
   loaded = true,
-  loading,
   modelName,
-  onSaveAnalytics,
   onSubmit,
   onSuccess,
   processingCount,
   selectedCount,
-  submitAppearance = "positive",
-  validationSchema,
-}: Props): JSX.Element | null => {
+  ...formikFormProps
+}: Props<V>): JSX.Element | null => {
   const [processing, setProcessing] = useState(false);
   const [saved, setSaved] = useState(false);
   const [selectedOnSubmit, setSelectedOnSubmit] = useState(selectedCount);
@@ -167,26 +147,19 @@ const ActionForm = ({
 
   if (loaded) {
     return (
-      <FormikForm
-        allowUnchanged={allowUnchanged}
-        allowAllEmpty={allowAllEmpty}
-        buttons={FormCardButtons}
+      <FormikForm<V>
+        buttonsAlign="right"
         buttonsBordered={false}
-        cleanup={cleanup}
         errors={formattedErrors}
-        initialValues={initialValues}
-        loading={loading}
         onCancel={clearSelectedAction}
-        onSaveAnalytics={onSaveAnalytics}
-        onSubmit={(...args: unknown[]) => {
-          onSubmit(...args);
+        onSubmit={(values?, formikHelpers?) => {
+          onSubmit(values, formikHelpers);
           // Set selected count in component state once form is submitted, so
           // that the saving label is not affected by updates to the component's
           // selectedCount prop, e.g. unselecting or deleting items.
           setSelectedOnSubmit(selectedCount);
           setProcessing(true);
         }}
-        saved={saved}
         saving={processing}
         savingLabel={`${getLabel(
           modelName,
@@ -194,9 +167,8 @@ const ActionForm = ({
           selectedOnSubmit,
           processingCount
         )}...`}
-        submitAppearance={submitAppearance}
         submitLabel={getLabel(modelName, actionName, selectedCount)}
-        validationSchema={validationSchema}
+        {...formikFormProps}
       >
         {children}
       </FormikForm>

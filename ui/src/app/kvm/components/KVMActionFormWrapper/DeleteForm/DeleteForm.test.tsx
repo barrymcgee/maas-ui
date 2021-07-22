@@ -33,14 +33,14 @@ describe("DeleteForm", () => {
     const wrapper = mount(
       <Provider store={store}>
         <MemoryRouter initialEntries={[{ pathname: "/kvm", key: "testKey" }]}>
-          <DeleteForm setSelectedAction={jest.fn()} />
+          <DeleteForm clearSelectedAction={jest.fn()} />
         </MemoryRouter>
       </Provider>
     );
     wrapper.find("Formik").simulate("submit");
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find("FormikForm").prop("saving")).toBe(true);
-    expect(wrapper.find('[data-test="loading-label"]').text()).toBe(
+    expect(wrapper.find('[data-test="saving-label"]').text()).toBe(
       "Removing KVM..."
     );
   });
@@ -60,7 +60,7 @@ describe("DeleteForm", () => {
     const wrapper = mount(
       <Provider store={store}>
         <MemoryRouter initialEntries={[{ pathname: "/kvm", key: "testKey" }]}>
-          <DeleteForm setSelectedAction={jest.fn()} />
+          <DeleteForm clearSelectedAction={jest.fn()} />
         </MemoryRouter>
       </Provider>
     );
@@ -83,7 +83,7 @@ describe("DeleteForm", () => {
     const wrapper = mount(
       <Provider store={store}>
         <MemoryRouter initialEntries={[{ pathname: "/kvm", key: "testKey" }]}>
-          <DeleteForm setSelectedAction={jest.fn()} />
+          <DeleteForm clearSelectedAction={jest.fn()} />
         </MemoryRouter>
       </Provider>
     );
@@ -106,7 +106,7 @@ describe("DeleteForm", () => {
     const wrapper = mount(
       <Provider store={store}>
         <MemoryRouter initialEntries={[{ pathname: "/kvm", key: "testKey" }]}>
-          <DeleteForm setSelectedAction={jest.fn()} />
+          <DeleteForm clearSelectedAction={jest.fn()} />
         </MemoryRouter>
       </Provider>
     );

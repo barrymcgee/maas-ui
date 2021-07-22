@@ -46,6 +46,19 @@ describe("subnet selectors", () => {
     expect(subnet.getById(state, 909)).toStrictEqual(items[1]);
   });
 
+  it("can get a subnet by cidr", () => {
+    const items = [
+      subnetFactory({ cidr: "cidr0" }),
+      subnetFactory({ cidr: "cidr1" }),
+    ];
+    const state = rootStateFactory({
+      subnet: subnetStateFactory({
+        items,
+      }),
+    });
+    expect(subnet.getByCIDR(state, "cidr1")).toStrictEqual(items[1]);
+  });
+
   it("can get subnets that are available to a given pod", () => {
     const subnets = [
       subnetFactory({ vlan: 1 }),
@@ -59,5 +72,23 @@ describe("subnet selectors", () => {
       }),
     });
     expect(subnet.getByPod(state, pod)).toStrictEqual([subnets[0], subnets[1]]);
+  });
+
+  it("can get PXE-enabled subnets that are available to a given pod", () => {
+    const subnets = [
+      subnetFactory({ vlan: 1 }),
+      subnetFactory({ vlan: 2 }),
+      subnetFactory({ vlan: 3 }),
+    ];
+    const pod = podDetailsFactory({ boot_vlans: [1, 2] });
+    const state = rootStateFactory({
+      subnet: subnetStateFactory({
+        items: subnets,
+      }),
+    });
+    expect(subnet.getPxeEnabledByPod(state, pod)).toStrictEqual([
+      subnets[0],
+      subnets[1],
+    ]);
   });
 });

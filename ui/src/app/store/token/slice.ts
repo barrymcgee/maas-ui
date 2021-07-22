@@ -1,23 +1,23 @@
-import type { SliceCaseReducers } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 
-import type { GenericSlice } from "../utils";
-import { generateSlice } from "../utils";
+import { TokenMeta } from "./types";
+import type { CreateParams, TokenState, UpdateParams } from "./types";
 
-import type { Token, TokenState } from "./types";
+import {
+  generateCommonReducers,
+  genericInitialState,
+} from "app/store/utils/slice";
 
-type TokenReducers = SliceCaseReducers<TokenState>;
-
-export type TokenSlice = GenericSlice<TokenState, Token, TokenReducers>;
-
-const tokenSlice = generateSlice<
-  Token,
-  TokenState["errors"],
-  TokenReducers,
-  "id"
->({
-  indexKey: "id",
-  name: "token",
-}) as TokenSlice;
+const tokenSlice = createSlice({
+  name: TokenMeta.MODEL,
+  initialState: genericInitialState as TokenState,
+  reducers: generateCommonReducers<
+    TokenState,
+    TokenMeta.PK,
+    CreateParams,
+    UpdateParams
+  >(TokenMeta.MODEL, TokenMeta.PK),
+});
 
 export const { actions } = tokenSlice;
 

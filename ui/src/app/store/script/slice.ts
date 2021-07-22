@@ -1,40 +1,30 @@
-import type {
-  CaseReducer,
-  PayloadAction,
-  PrepareAction,
-  SliceCaseReducers,
-} from "@reduxjs/toolkit";
+import type { PayloadAction } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 
-import type { GenericSlice } from "../utils";
-import { generateSlice } from "../utils";
-
+import { ScriptMeta } from "./types";
 import type { Script, ScriptState } from "./types";
 
-type WithPrepare = {
-  reducer: CaseReducer<ScriptState, PayloadAction<unknown>>;
-  prepare: PrepareAction<unknown>;
-};
+import {
+  generateCommonReducers,
+  genericInitialState,
+} from "app/store/utils/slice";
 
-type Reducers = SliceCaseReducers<ScriptState> & {
-  get: WithPrepare;
-  upload: WithPrepare;
-};
-
-export type ScriptSlice = GenericSlice<ScriptState, Script, Reducers>;
-
-const scriptResultSlice = generateSlice<
-  Script,
-  ScriptState["errors"],
-  Reducers,
-  "id"
->({
-  indexKey: "id",
-  name: "script",
+const scriptSlice = createSlice({
+  name: ScriptMeta.MODEL,
+  initialState: genericInitialState as ScriptState,
   reducers: {
+    ...generateCommonReducers<ScriptState, ScriptMeta.PK, void, void>(
+      ScriptMeta.MODEL,
+      ScriptMeta.PK
+    ),
     get: {
-      prepare: (id: Script["id"], fileId: string, revision?: number) => ({
+      prepare: (
+        id: Script[ScriptMeta.PK],
+        fileId: string,
+        revision?: number
+      ) => ({
         meta: {
-          model: "script",
+          model: ScriptMeta.MODEL,
           method: "get_script",
           fileContextKey: fileId,
           useFileContext: true,
@@ -67,7 +57,7 @@ const scriptResultSlice = generateSlice<
       prepare: (
         type: Script["script_type"],
         contents: string,
-        name: Script["name"]
+        name?: Script["name"]
       ) => ({
         payload: {
           type,
@@ -93,8 +83,8 @@ const scriptResultSlice = generateSlice<
       state.saved = true;
     },
   },
-}) as ScriptSlice;
+});
 
-export const { actions } = scriptResultSlice;
+export const { actions } = scriptSlice;
 
-export default scriptResultSlice.reducer;
+export default scriptSlice.reducer;

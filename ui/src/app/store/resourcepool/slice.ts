@@ -1,32 +1,32 @@
-import type { SliceCaseReducers } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 
-import type { Machine } from "../machine/types";
-import type { GenericSlice } from "../utils";
-import { generateSlice } from "../utils";
-
-import type { ResourcePool, ResourcePoolState } from "./types";
-
-type ResourcePoolReducers = SliceCaseReducers<ResourcePoolState>;
-
-export type ResourcePoolSlice = GenericSlice<
+import { ResourcePoolMeta } from "./types";
+import type {
+  CreateParams,
+  CreateWithMachinesParams,
   ResourcePoolState,
-  ResourcePool,
-  ResourcePoolReducers
->;
+  UpdateParams,
+} from "./types";
 
-const resourcePoolSlice = generateSlice<
-  ResourcePool,
-  ResourcePoolState["errors"],
-  ResourcePoolReducers,
-  "id"
->({
-  indexKey: "id",
-  name: "resourcepool",
+import {
+  generateCommonReducers,
+  genericInitialState,
+} from "app/store/utils/slice";
+
+const resourcePoolSlice = createSlice({
+  name: ResourcePoolMeta.MODEL,
+  initialState: genericInitialState as ResourcePoolState,
   reducers: {
+    ...generateCommonReducers<
+      ResourcePoolState,
+      ResourcePoolMeta.PK,
+      CreateParams,
+      UpdateParams
+    >(ResourcePoolMeta.MODEL, ResourcePoolMeta.PK),
     createWithMachines: {
-      prepare: (pool: ResourcePool, machines: Machine[]) => ({
+      prepare: (params: CreateWithMachinesParams) => ({
         payload: {
-          params: { pool, machines },
+          params,
         },
       }),
       reducer: (state: ResourcePoolState) => {
@@ -34,7 +34,7 @@ const resourcePoolSlice = generateSlice<
       },
     },
   },
-}) as ResourcePoolSlice;
+});
 
 export const { actions } = resourcePoolSlice;
 

@@ -6,7 +6,9 @@ import type {
 } from "@reduxjs/toolkit";
 import { createSlice } from "@reduxjs/toolkit";
 
-import type { GeneralState } from "app/store/general/types";
+import type { GeneralState } from "./types";
+import { GeneralMeta } from "./types";
+
 import { capitaliseFirst } from "app/utils";
 
 const generateInitialState = <K extends keyof GeneralState>(
@@ -32,7 +34,6 @@ type Reducers = SliceCaseReducers<GeneralState> & {
   fetchHweKernels: WithPrepare;
   fetchKnownArchitectures: WithPrepare;
   fetchMachineActions: WithPrepare;
-  fetchNavigationOptions: WithPrepare;
   fetchOsInfo: WithPrepare;
   fetchPocketsToDisable: WithPrepare;
   fetchPowerTypes: WithPrepare;
@@ -47,7 +48,7 @@ const generateGeneralReducers = <K extends keyof GeneralState>(
     prepare: () => ({
       meta: {
         cache: true,
-        model: "general",
+        model: GeneralMeta.MODEL,
         method,
       },
       payload: null,
@@ -77,7 +78,7 @@ const generateGeneralReducers = <K extends keyof GeneralState>(
 });
 
 const generalSlice = createSlice({
-  name: "general",
+  name: GeneralMeta.MODEL,
   initialState: {
     architectures: generateInitialState([]),
     bondOptions: generateInitialState(null),
@@ -86,12 +87,11 @@ const generalSlice = createSlice({
     hweKernels: generateInitialState([]),
     knownArchitectures: generateInitialState([]),
     machineActions: generateInitialState([]),
-    navigationOptions: generateInitialState(null),
     osInfo: generateInitialState(null),
     pocketsToDisable: generateInitialState([]),
     powerTypes: generateInitialState([]),
     version: generateInitialState(""),
-  },
+  } as GeneralState,
   reducers: {
     ...generateGeneralReducers("architectures", "architectures"),
     ...generateGeneralReducers("bondOptions", "bond_options"),
@@ -100,7 +100,6 @@ const generalSlice = createSlice({
     ...generateGeneralReducers("hweKernels", "hwe_kernels"),
     ...generateGeneralReducers("knownArchitectures", "known_architectures"),
     ...generateGeneralReducers("machineActions", "machine_actions"),
-    ...generateGeneralReducers("navigationOptions", "navigation_options"),
     ...generateGeneralReducers("osInfo", "osinfo"),
     ...generateGeneralReducers("pocketsToDisable", "pockets_to_disable"),
     ...generateGeneralReducers("powerTypes", "power_types"),

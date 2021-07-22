@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import type { Dispatch, SetStateAction } from "react";
 
 import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router";
@@ -17,26 +16,19 @@ import KVMResources from "./KVMResources";
 import LxdProject from "./LxdProject";
 
 import Section from "app/base/components/Section";
-import type { RouteParams } from "app/base/types";
-import {
-  filtersToQueryString,
-  filtersToString,
-  getCurrentFilters,
-  queryStringToFilters,
-} from "app/machines/search";
-import type { SelectedAction as MachineAction } from "app/machines/views/MachineDetails/types";
+import type { RouteParams, SetSelectedAction } from "app/base/types";
+import kvmURLs from "app/kvm/urls";
+import type { MachineSelectedAction } from "app/machines/views/types";
+import { FilterMachines } from "app/store/machine/utils";
 import { actions as podActions } from "app/store/pod";
 import podSelectors from "app/store/pod/selectors";
+import type { PodAction } from "app/store/pod/types";
 import { PodType } from "app/store/pod/types";
 import type { RootState } from "app/store/root/types";
 
-export enum KVMAction {
-  COMPOSE = "compose",
-  DELETE = "delete",
-  REFRESH = "refresh",
-}
-export type SelectedAction = KVMAction | MachineAction | null;
-export type SetSelectedAction = Dispatch<SetStateAction<SelectedAction>>;
+export type KVMSelectedAction = PodAction | MachineSelectedAction;
+
+export type KVMSetSelectedAction = SetSelectedAction<KVMSelectedAction>;
 export type SetSearchFilter = (searchFilter: string) => void;
 
 const KVMDetails = (): JSX.Element => {
@@ -49,11 +41,12 @@ const KVMDetails = (): JSX.Element => {
   );
   const podsLoaded = useSelector(podSelectors.loaded);
   // Search filter is determined by the URL and used to initialise state.
-  const currentFilters = queryStringToFilters(location.search);
+  const currentFilters = FilterMachines.queryStringToFilters(location.search);
   const [searchFilter, setFilter] = useState<string>(
-    filtersToString(currentFilters)
+    FilterMachines.filtersToString(currentFilters)
   );
-  const [selectedAction, setSelectedAction] = useState<SelectedAction>(null);
+  const [selectedAction, setSelectedAction] =
+    useState<KVMSelectedAction | null>(null);
 
   useEffect(() => {
     dispatch(podActions.get(Number(id)));
@@ -68,13 +61,13 @@ const KVMDetails = (): JSX.Element => {
 
   // If KVM has been deleted, redirect to KVM list.
   if (podsLoaded && !pod) {
-    return <Redirect to="/kvm" />;
+    return <Redirect to={kvmURLs.kvm} />;
   }
 
   const setSearchFilter: SetSearchFilter = (searchFilter: string) => {
     setFilter(searchFilter);
-    const filters = getCurrentFilters(searchFilter);
-    history.push({ search: filtersToQueryString(filters) });
+    const filters = FilterMachines.getCurrentFilters(searchFilter);
+    history.push({ search: FilterMachines.filtersToQueryString(filters) });
   };
 
   return (
@@ -90,7 +83,7 @@ const KVMDetails = (): JSX.Element => {
       {pod && (
         <Switch>
           {pod.type === PodType.LXD && (
-            <Route exact path="/kvm/:id/project">
+            <Route exact path={kvmURLs.project(null, true)}>
               <LxdProject
                 id={pod.id}
                 searchFilter={searchFilter}
@@ -99,21 +92,21 @@ const KVMDetails = (): JSX.Element => {
               />
             </Route>
           )}
-          <Route exact path="/kvm/:id/resources">
+          <Route exact path={kvmURLs.resources(null, true)}>
             <KVMResources id={pod.id} />
           </Route>
-          <Route exact path="/kvm/:id/edit">
+          <Route exact path={kvmURLs.edit(null, true)}>
             <KVMConfiguration
               id={pod.id}
               setSelectedAction={setSelectedAction}
             />
           </Route>
           <Redirect
-            from="/kvm/:id"
+            from={kvmURLs.details(null, true)}
             to={
               pod.type === PodType.LXD
-                ? "/kvm/:id/project"
-                : "/kvm/:id/resources"
+                ? kvmURLs.project(null, true)
+                : kvmURLs.resources(null, true)
             }
           />
         </Switch>

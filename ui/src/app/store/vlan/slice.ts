@@ -1,18 +1,23 @@
-import type { SliceCaseReducers } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 
-import type { GenericSlice } from "../utils";
-import { generateSlice } from "../utils";
+import { VLANMeta } from "./types";
+import type { CreateParams, UpdateParams, VLANState } from "./types";
 
-import type { VLAN, VLANState } from "./types";
+import {
+  generateCommonReducers,
+  genericInitialState,
+} from "app/store/utils/slice";
 
-type VLANReducers = SliceCaseReducers<VLANState>;
-
-export type VLANSlice = GenericSlice<VLANState, VLAN, VLANReducers>;
-
-const vlanSlice = generateSlice<VLAN, VLANState["errors"], VLANReducers, "id">({
-  indexKey: "id",
-  name: "vlan",
-}) as VLANSlice;
+const vlanSlice = createSlice({
+  name: VLANMeta.MODEL,
+  initialState: genericInitialState as VLANState,
+  reducers: generateCommonReducers<
+    VLANState,
+    VLANMeta.PK,
+    CreateParams,
+    UpdateParams
+  >(VLANMeta.MODEL, VLANMeta.PK),
+});
 
 export const { actions } = vlanSlice;
 

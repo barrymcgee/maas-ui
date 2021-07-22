@@ -1,62 +1,44 @@
-import type {
-  CaseReducer,
-  PayloadAction,
-  PrepareAction,
-  SliceCaseReducers,
-} from "@reduxjs/toolkit";
+import type { PayloadAction } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 
 import type { Machine } from "../machine/types";
-import type { GenericItemMeta, GenericSlice } from "../utils";
-import { generateSlice } from "../utils";
+import type { GenericItemMeta } from "../utils";
 
+import { ScriptResultMeta } from "./types";
 import type {
   PartialScriptResult,
   ScriptResult,
+  ScriptResultDataType,
   ScriptResultState,
 } from "./types";
 
-type ItemMeta = {
-  system_id: string;
-};
+import {
+  generateCommonReducers,
+  genericInitialState,
+} from "app/store/utils/slice";
 
 type HistoryItemMeta = {
   id: number;
 };
 
-type LogType = "combined" | "stdout" | "stderr" | "result";
+type LogsItemMeta = HistoryItemMeta & { data_type: ScriptResultDataType };
 
-type LogsItemMeta = HistoryItemMeta & { data_type: LogType };
-
-type WithPrepare = {
-  reducer: CaseReducer<ScriptResultState, PayloadAction<unknown>>;
-  prepare: PrepareAction<unknown>;
-};
-
-type Reducers = SliceCaseReducers<ScriptResultState> & {
-  getLogs: WithPrepare;
-};
-
-export type ScriptResultSlice = GenericSlice<
-  ScriptResultState,
-  ScriptResult,
-  Reducers
->;
-
-const scriptResultSlice = generateSlice<
-  ScriptResult,
-  ScriptResultState["errors"],
-  Reducers,
-  "id"
->({
-  indexKey: "id",
+const scriptResultSlice = createSlice({
+  name: ScriptResultMeta.MODEL,
   initialState: {
+    ...genericInitialState,
     history: {},
     logs: null,
   } as ScriptResultState,
-  name: "scriptresult",
   reducers: {
+    ...generateCommonReducers<
+      ScriptResultState,
+      ScriptResultMeta.PK,
+      void,
+      void
+    >(ScriptResultMeta.MODEL, ScriptResultMeta.PK),
     get: {
-      prepare: (id: ScriptResult["id"]) => ({
+      prepare: (id: ScriptResult[ScriptResultMeta.PK]) => ({
         meta: {
           model: "noderesult",
           method: "get",
@@ -83,7 +65,7 @@ const scriptResultSlice = generateSlice<
     },
     getSuccess: (
       state: ScriptResultState,
-      action: PayloadAction<ScriptResult, string, GenericItemMeta<ItemMeta>>
+      action: PayloadAction<ScriptResult>
     ) => {
       const result = action.payload;
       const i = state.items.findIndex(
@@ -132,7 +114,7 @@ const scriptResultSlice = generateSlice<
     },
     getByMachineIdSuccess: (
       state: ScriptResultState,
-      action: PayloadAction<ScriptResult[], string, GenericItemMeta<ItemMeta>>
+      action: PayloadAction<ScriptResult[]>
     ) => {
       action.payload.forEach((result) => {
         const i = state.items.findIndex(
@@ -149,7 +131,7 @@ const scriptResultSlice = generateSlice<
       state.loaded = true;
     },
     getHistory: {
-      prepare: (id: ScriptResult["id"]) => ({
+      prepare: (id: ScriptResult[ScriptResultMeta.PK]) => ({
         meta: {
           model: "noderesult",
           method: "get_history",
@@ -179,20 +161,36 @@ const scriptResultSlice = generateSlice<
       state.loading = false;
       state.saving = false;
     },
-    getHistorySuccess: (
-      state: ScriptResultState,
-      action: PayloadAction<
-        PartialScriptResult[],
-        string,
-        GenericItemMeta<HistoryItemMeta>
-      >
-    ) => {
-      state.history[action.meta.item.id] = action.payload;
-      state.loading = false;
-      state.loaded = true;
+    getHistorySuccess: {
+      prepare: (
+        id: ScriptResult[ScriptResultMeta.PK],
+        scriptResults: PartialScriptResult[]
+      ) => ({
+        meta: {
+          item: {
+            id,
+          },
+        },
+        payload: scriptResults,
+      }),
+      reducer: (
+        state: ScriptResultState,
+        action: PayloadAction<
+          PartialScriptResult[],
+          string,
+          GenericItemMeta<HistoryItemMeta>
+        >
+      ) => {
+        state.history[action.meta.item.id] = action.payload;
+        state.loading = false;
+        state.loaded = true;
+      },
     },
     getLogs: {
-      prepare: (id: ScriptResult["id"], type: LogType) => ({
+      prepare: (
+        id: ScriptResult[ScriptResultMeta.PK],
+        type: ScriptResultDataType
+      ) => ({
         meta: {
           model: "noderesult",
           method: "get_result_data",
@@ -220,23 +218,37 @@ const scriptResultSlice = generateSlice<
       state.loading = false;
       state.saving = false;
     },
-    getLogsSuccess: (
-      state: ScriptResultState,
-      action: PayloadAction<string, string, GenericItemMeta<LogsItemMeta>>
-    ) => {
-      if (!state.logs) {
-        state.logs = {};
-      }
-      const { id, data_type } = action.meta.item;
-      if (!state.logs[id]) {
-        state.logs[id] = {};
-      }
-      state.logs[id][data_type] = action.payload;
-      state.loading = false;
-      state.loaded = true;
+    getLogsSuccess: {
+      prepare: (
+        id: ScriptResult[ScriptResultMeta.PK],
+        logType: ScriptResultDataType,
+        payload: string
+      ) => ({
+        meta: {
+          item: {
+            id,
+            data_type: logType,
+          },
+        },
+        payload,
+      }),
+      reducer: (
+        state: ScriptResultState,
+        action: PayloadAction<string, string, GenericItemMeta<LogsItemMeta>>
+      ) => {
+        if (!state.logs) {
+          state.logs = {};
+        }
+        const { id, data_type } = action.meta.item;
+        if (!state.logs[id]) {
+          state.logs[id] = {};
+        }
+        state.logs[id][data_type] = action.payload;
+        state.loading = false;
+        state.loaded = true;
+      },
     },
   },
-
   extraReducers: {
     "noderesult/createNotify": (state, action) => {
       const existingIdx = state.items.findIndex(
@@ -259,7 +271,7 @@ const scriptResultSlice = generateSlice<
       }
     },
   },
-}) as ScriptResultSlice;
+});
 
 export const { actions } = scriptResultSlice;
 

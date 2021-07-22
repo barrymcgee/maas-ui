@@ -1,10 +1,11 @@
 import vlan from "./selectors";
 
-import { NetworkInterfaceTypes } from "app/store/machine/types";
+import { NetworkInterfaceTypes } from "app/store/types/enum";
 import {
   fabric as fabricFactory,
   fabricState as fabricStateFactory,
   machine as machineFactory,
+  machineDetails as machineDetailsFactory,
   machineInterface as machineInterfaceFactory,
   machineState as machineStateFactory,
   rootState as rootStateFactory,
@@ -98,7 +99,7 @@ describe("vlan selectors", () => {
       const nic = machineInterfaceFactory({
         vlan_id: items[0].id,
       });
-      const machine = machineFactory({
+      const machine = machineDetailsFactory({
         interfaces: [nic],
       });
       const state = rootStateFactory({
@@ -127,7 +128,7 @@ describe("vlan selectors", () => {
       const nic = machineInterfaceFactory({
         vlan_id: items[0].id,
       });
-      const machine = machineFactory({
+      const machine = machineDetailsFactory({
         interfaces: [
           nic,
           machineInterfaceFactory({

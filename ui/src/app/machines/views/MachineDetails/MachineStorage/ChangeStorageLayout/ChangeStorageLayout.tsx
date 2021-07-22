@@ -4,42 +4,47 @@ import { ContextualMenu, Icon } from "@canonical/react-components";
 import { useDispatch } from "react-redux";
 
 import FormCard from "app/base/components/FormCard";
-import FormCardButtons from "app/base/components/FormCardButtons";
 import FormikForm from "app/base/components/FormikForm";
+import type { EmptyObject } from "app/base/types";
 import { useMachineDetailsForm } from "app/machines/hooks";
 import { actions as machineActions } from "app/store/machine";
+import { StorageLayout } from "app/store/machine/types";
 import type { Machine } from "app/store/machine/types";
 
 type StorageLayoutOption = {
   label: string;
   sentenceLabel: string;
-  value: string;
+  value: StorageLayout;
 };
 
 type Props = { systemId: Machine["system_id"] };
 
 const storageLayoutOptions: StorageLayoutOption[][] = [
   [
-    { label: "Flat", sentenceLabel: "flat", value: "flat" },
-    { label: "LVM", sentenceLabel: "LVM", value: "lvm" },
-    { label: "bcache", sentenceLabel: "bcache", value: "bcache" },
+    { label: "Flat", sentenceLabel: "flat", value: StorageLayout.FLAT },
+    { label: "LVM", sentenceLabel: "LVM", value: StorageLayout.LVM },
+    { label: "bcache", sentenceLabel: "bcache", value: StorageLayout.BCACHE },
   ],
-  [{ label: "VMFS6 (VMware ESXI)", sentenceLabel: "VMFS6", value: "vmfs6" }],
+  [
+    {
+      label: "VMFS6 (VMware ESXI)",
+      sentenceLabel: "VMFS6",
+      value: StorageLayout.VMFS6,
+    },
+  ],
   [
     {
       label: "No storage (blank) layout",
       sentenceLabel: "blank",
-      value: "blank",
+      value: StorageLayout.BLANK,
     },
   ],
 ];
 
 export const ChangeStorageLayout = ({ systemId }: Props): JSX.Element => {
   const dispatch = useDispatch();
-  const [
-    selectedLayout,
-    setSelectedLayout,
-  ] = useState<StorageLayoutOption | null>(null);
+  const [selectedLayout, setSelectedLayout] =
+    useState<StorageLayoutOption | null>(null);
   const { errors, saved, saving } = useMachineDetailsForm(
     systemId,
     "applyingStorageLayout",
@@ -64,8 +69,7 @@ export const ChangeStorageLayout = ({ systemId }: Props): JSX.Element => {
     </div>
   ) : (
     <FormCard data-test="confirmation-form" sidebar={false}>
-      <FormikForm
-        buttons={FormCardButtons}
+      <FormikForm<EmptyObject>
         cleanup={machineActions.cleanup}
         errors={errors}
         initialValues={{}}
@@ -80,7 +84,10 @@ export const ChangeStorageLayout = ({ systemId }: Props): JSX.Element => {
         onSubmit={() => {
           dispatch(machineActions.cleanup());
           dispatch(
-            machineActions.applyStorageLayout(systemId, selectedLayout.value)
+            machineActions.applyStorageLayout({
+              systemId,
+              storageLayout: selectedLayout.value,
+            })
           );
         }}
         saved={saved}

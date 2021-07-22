@@ -23,13 +23,15 @@ type Props = {
 
 const generateRows = (
   scripts: Script[],
-  expandedId: Script["id"],
-  setExpandedId: (id: Script["id"]) => void,
-  expandedType: "delete" | null,
+  expandedId: Script["id"] | null,
+  setExpandedId: (id: Script["id"] | null) => void,
+  expandedType: "delete" | "details" | null,
   setExpandedType: (expandedType: "delete" | "details") => void,
   hideExpanded: () => void,
   dispatch: Dispatch,
-  setDeleting: (id: Script["name"]) => void
+  setDeleting: (id: Script["name"] | null) => void,
+  saved: boolean,
+  saving: boolean
 ) =>
   scripts.map((script) => {
     const expanded = expandedId === script.id;
@@ -38,7 +40,11 @@ const generateRows = (
     let uploadedOn: string;
     try {
       uploadedOn = format(
-        parse(script.created, "EEE, dd LLL yyyy HH:mm:ss xxxx", new Date()),
+        parse(
+          `${script.created} +00`, // let parse fn know it's UTC
+          "E, dd LLL. yyyy HH:mm:ss x",
+          new Date()
+        ),
         "yyyy-LL-dd H:mm"
       );
     } catch (error) {
@@ -65,13 +71,13 @@ const generateRows = (
         {
           content: script.description,
         },
-        { content: uploadedOn },
+        { content: <span data-test="upload-date">{uploadedOn}</span> },
         {
           content: (
             <TableActions
               deleteDisabled={script.default}
               deleteTooltip={
-                script.default && "Default scripts cannot be deleted."
+                script.default ? "Default scripts cannot be deleted." : null
               }
               onDelete={() => {
                 setExpandedId(script.id);
@@ -87,13 +93,14 @@ const generateRows = (
         expanded &&
         (showDelete ? (
           <TableDeleteConfirm
+            deleted={saved}
+            deleting={saving}
             modelName={script.name}
             modelType="Script"
-            onCancel={hideExpanded}
+            onClose={hideExpanded}
             onConfirm={() => {
               dispatch(scriptActions.delete(script.id));
               setDeleting(script.name);
-              hideExpanded();
             }}
           />
         ) : (
@@ -110,16 +117,19 @@ const generateRows = (
 
 const ScriptsList = ({ type = "commissioning" }: Props): JSX.Element => {
   const dispatch = useDispatch();
-  const [expandedId, setExpandedId] = useState(null);
-  const [expandedType, setExpandedType] = useState(null);
+  const [expandedId, setExpandedId] = useState<Script["id"] | null>(null);
+  const [expandedType, setExpandedType] = useState<"delete" | "details" | null>(
+    null
+  );
   const [searchText, setSearchText] = useState("");
-  const [deletingScript, setDeleting] = useState(null);
+  const [deletingScript, setDeleting] = useState<Script["name"] | null>(null);
 
   const scriptsLoading = useSelector(scriptSelectors.loading);
   const scriptsLoaded = useSelector(scriptSelectors.loaded);
   const hasErrors = useSelector(scriptSelectors.hasErrors);
   const errors = useSelector(scriptSelectors.errors);
   const saved = useSelector(scriptSelectors.saved);
+  const saving = useSelector(scriptSelectors.saving);
 
   const userScripts = useSelector((state: RootState) =>
     scriptSelectors.search(state, searchText, type)
@@ -189,7 +199,9 @@ const ScriptsList = ({ type = "commissioning" }: Props): JSX.Element => {
         setExpandedType,
         hideExpanded,
         dispatch,
-        setDeleting
+        setDeleting,
+        saved,
+        saving
       )}
       searchOnChange={setSearchText}
       searchPlaceholder={`Search ${type} scripts`}

@@ -3,7 +3,7 @@ import {
   getFirstSelected,
   getParentIds,
   getValidNics,
-  preparePayload,
+  prepareBondPayload,
 } from "./utils";
 
 import {
@@ -11,10 +11,7 @@ import {
   BondMode,
   BondXmitHashPolicy,
 } from "app/store/general/types";
-import {
-  NetworkInterfaceTypes,
-  NetworkLinkMode,
-} from "app/store/machine/types";
+import { NetworkInterfaceTypes, NetworkLinkMode } from "app/store/types/enum";
 import {
   machineDetails as machineDetailsFactory,
   machineInterface as machineInterfaceFactory,
@@ -147,7 +144,7 @@ describe("BondForm utils", () => {
     });
   });
 
-  describe("preparePayload", () => {
+  describe("prepareBondPayload", () => {
     it("cleans and prepares the payload with a nic and link", () => {
       const nic = machineInterfaceFactory();
       const link = networkLinkFactory();
@@ -173,7 +170,7 @@ describe("BondForm utils", () => {
         vlan: 1,
       };
       expect(
-        preparePayload(
+        prepareBondPayload(
           values,
           [{ nicId: 1 }, { nicId: 2 }],
           "abc123",
@@ -222,7 +219,7 @@ describe("BondForm utils", () => {
         tags: ["a", "tag"],
         vlan: 1,
       };
-      const payload = preparePayload(values, [], "abc123");
+      const payload = prepareBondPayload(values, [], "abc123");
       expect(payload.link_id).toBeUndefined();
       expect(payload.interface_id).toBeUndefined();
     });

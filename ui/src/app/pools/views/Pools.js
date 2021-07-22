@@ -13,24 +13,36 @@ import TableActions from "app/base/components/TableActions";
 import TableDeleteConfirm from "app/base/components/TableDeleteConfirm";
 import { actions as machineActions } from "app/store/machine";
 import { useAddMessage, useWindowTitle } from "app/base/hooks";
+import machineURLs from "app/machines/urls";
+import poolsURLs from "app/pools/urls";
 import resourcePoolSelectors from "app/store/resourcepool/selectors";
 import { actions as resourcePoolActions } from "app/store/resourcepool";
-import { filtersToQueryString } from "app/machines/search";
+import { FilterMachines } from "app/store/machine/utils";
 import { formatErrors } from "app/utils";
 
 const getMachinesLabel = (row) => {
   if (row.machine_total_count === 0) {
     return "Empty pool";
   }
-  const filters = filtersToQueryString({ pool: [`=${row.name}`] });
+  const filters = FilterMachines.filtersToQueryString({
+    pool: [`=${row.name}`],
+  });
   return (
-    <Link to={`/machines${filters}`}>
+    <Link to={`${machineURLs.machines.index}${filters}`}>
       {`${row.machine_ready_count} of ${row.machine_total_count} ready`}
     </Link>
   );
 };
 
-const generateRows = (rows, expandedId, setExpandedId, dispatch, setDeleting) =>
+const generateRows = (
+  rows,
+  expandedId,
+  setExpandedId,
+  dispatch,
+  setDeleting,
+  saved,
+  saving
+) =>
   rows.map((row) => {
     const expanded = expandedId === row.id;
     return {
@@ -59,7 +71,7 @@ const generateRows = (rows, expandedId, setExpandedId, dispatch, setDeleting) =>
                   "Cannot delete a pool that contains machines.")
               }
               editDisabled={!row.permissions.includes("edit")}
-              editPath={`/pools/${row.id}/edit`}
+              editPath={poolsURLs.edit({ id: row.id })}
               onDelete={() => setExpandedId(row.id)}
             />
           ),
@@ -69,13 +81,14 @@ const generateRows = (rows, expandedId, setExpandedId, dispatch, setDeleting) =>
       expanded: expanded,
       expandedContent: expanded && (
         <TableDeleteConfirm
+          deleted={saved}
+          deleting={saving}
           modelName={row.name}
           modelType="resourcepool"
-          onCancel={setExpandedId}
+          onClose={setExpandedId}
           onConfirm={() => {
             dispatch(resourcePoolActions.delete(row.id));
             setDeleting(row.name);
-            setExpandedId();
           }}
           sidebar={false}
         />
@@ -99,6 +112,7 @@ const Pools = () => {
   const poolsLoaded = useSelector(resourcePoolSelectors.loaded);
   const poolsLoading = useSelector(resourcePoolSelectors.loading);
   const saved = useSelector(resourcePoolSelectors.saved);
+  const saving = useSelector(resourcePoolSelectors.saving);
   const errors = useSelector(resourcePoolSelectors.errors);
   const errorMessage = formatErrors(errors);
 
@@ -167,7 +181,9 @@ const Pools = () => {
                   expandedId,
                   setExpandedId,
                   dispatch,
-                  setDeleting
+                  setDeleting,
+                  saved,
+                  saving
                 )}
                 sortable
               />

@@ -11,7 +11,6 @@ import { useDispatch, useSelector } from "react-redux";
 import * as Yup from "yup";
 
 import FormCard from "app/base/components/FormCard";
-import FormCardButtons from "app/base/components/FormCardButtons";
 import FormikField from "app/base/components/FormikField";
 import FormikForm from "app/base/components/FormikForm";
 import { useMachineDetailsForm } from "app/machines/hooks";
@@ -22,6 +21,7 @@ import type { Disk, Machine, Partition } from "app/store/machine/types";
 import {
   formatSize,
   formatType,
+  isMachineDetails,
   splitDiskPartitionIds,
 } from "app/store/machine/utils";
 import type { RootState } from "app/store/root/types";
@@ -68,12 +68,11 @@ export const CreateVolumeGroup = ({
   );
   const totalSize = selected.reduce((sum, device) => (sum += device.size), 0);
 
-  if (machine && "disks" in machine) {
+  if (isMachineDetails(machine)) {
     return (
       <FormCard sidebar={false}>
-        <FormikForm
+        <FormikForm<CreateVolumeGroupValues>
           allowUnchanged
-          buttons={FormCardButtons}
           cleanup={machineActions.cleanup}
           errors={errors}
           initialValues={{
@@ -86,9 +85,8 @@ export const CreateVolumeGroup = ({
             label: "Create volume group",
           }}
           onSubmit={(values: CreateVolumeGroupValues) => {
-            const [blockDeviceIds, partitionIds] = splitDiskPartitionIds(
-              selected
-            );
+            const [blockDeviceIds, partitionIds] =
+              splitDiskPartitionIds(selected);
             const params = {
               name: values.name,
               systemId,

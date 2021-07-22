@@ -11,7 +11,7 @@ import { MacSource } from "../BondForm/types";
 import {
   getFirstSelected,
   getValidNics,
-  preparePayload,
+  prepareBondPayload,
 } from "../BondForm/utils";
 import InterfaceFormTable from "../InterfaceFormTable";
 import {
@@ -21,7 +21,6 @@ import {
 import type { Selected, SetSelected } from "../NetworkTable/types";
 
 import FormCard from "app/base/components/FormCard";
-import FormCardButtons from "app/base/components/FormCardButtons";
 import FormikForm from "app/base/components/FormikForm";
 import { MAC_ADDRESS_REGEX } from "app/base/validation";
 import { useMachineDetailsForm } from "app/machines/hooks";
@@ -34,17 +33,19 @@ import {
 } from "app/store/general/types";
 import { actions as machineActions } from "app/store/machine";
 import machineSelectors from "app/store/machine/selectors";
-import type { MachineDetails, NetworkInterface } from "app/store/machine/types";
-import { NetworkInterfaceTypes } from "app/store/machine/types";
+import type { CreateBondParams, MachineDetails } from "app/store/machine/types";
 import {
   getInterfaceSubnet,
   getLinkFromNic,
   getNextNicName,
+  isMachineDetails,
   useIsAllNetworkingDisabled,
 } from "app/store/machine/utils";
 import type { RootState } from "app/store/root/types";
 import { actions as subnetActions } from "app/store/subnet";
 import subnetSelectors from "app/store/subnet/selectors";
+import { NetworkInterfaceTypes } from "app/store/types/enum";
+import type { NetworkInterface } from "app/store/types/node";
 import { actions as vlanActions } from "app/store/vlan";
 import vlanSelectors from "app/store/vlan/selectors";
 
@@ -126,18 +127,18 @@ const AddBondForm = ({
     // to be done so that if all interfaces become deselected then the VLAN
     // information is not lost.
     if (!bondVLAN && hasEnoughNics && firstNic) {
-      setBondVLAN(firstNic?.vlan_id);
+      setBondVLAN(firstNic.vlan_id);
     }
   }, [bondVLAN, firstNic, hasEnoughNics, setBondVLAN]);
 
   if (
-    !machine ||
-    !("interfaces" in machine) ||
+    !isMachineDetails(machine) ||
     !vlansLoaded ||
     !fabricsLoaded ||
-    !subnetsLoaded
+    !subnetsLoaded ||
+    !bondVLAN
   ) {
-    return <Spinner />;
+    return <Spinner data-test="data-loading" />;
   }
   const subnet = getInterfaceSubnet(
     machine,
@@ -157,9 +158,8 @@ const AddBondForm = ({
   const macAddress = firstNic?.mac_address || "";
   return (
     <FormCard sidebar={false} stacked title="Create bond">
-      <FormikForm
+      <FormikForm<BondFormValues>
         allowUnchanged
-        buttons={FormCardButtons}
         cleanup={cleanup}
         errors={errors}
         initialValues={{
@@ -173,7 +173,7 @@ const AddBondForm = ({
           fabric: vlan ? vlan.fabric : "",
           linkMonitoring: "",
           mac_address: macAddress,
-          name: nextName,
+          name: nextName || "",
           macSource: MacSource.NIC,
           macNic: macAddress,
           subnet: subnet ? subnet.id : "",
@@ -186,10 +186,14 @@ const AddBondForm = ({
           label: "Create bond form",
         }}
         onCancel={close}
-        onSubmit={(values: BondFormValues) => {
+        onSubmit={(values) => {
           // Clear the errors from the previous submission.
           dispatch(cleanup());
-          const payload = preparePayload(values, selected, systemId);
+          const payload = prepareBondPayload(
+            values,
+            selected,
+            systemId
+          ) as CreateBondParams;
           dispatch(machineActions.createBond(payload));
         }}
         resetOnSave

@@ -22,7 +22,7 @@ import singleSpaAngularJS from "single-spa-angularjs";
 import * as Sentry from "@sentry/browser";
 import * as Integrations from "@sentry/integrations";
 
-import { navigateToNew, navigateToLegacy } from "@maas-ui/maas-ui-shared";
+import { navigateToNew } from "@maas-ui/maas-ui-shared";
 import configureRoutes from "./routes";
 import setupWebsocket from "./bootstrap";
 
@@ -75,20 +75,16 @@ import JSONService from "./services/json";
 import LogService from "./services/log";
 import Manager from "./services/manager";
 import ManagerHelperService from "./services/managerhelper";
-// TODO: move to factories
-import PollingManager from "./services/pollingmanager";
 // TODO: fix name
 import RegionConnection from "./services/region";
 import SearchService from "./services/search";
 import ValidationService from "./services/validation";
 
 // factories
-import BootResourcesManager from "./factories/bootresources";
 import ConfigsManager from "./factories/configs";
 import ControllersManager from "./factories/controllers";
 import DevicesManager from "./factories/devices";
 import DHCPSnippetsManager from "./factories/dhcpsnippets";
-import DiscoveriesManager from "./factories/discoveries";
 import DomainsManager from "./factories/domains";
 import EventsManagerFactory from "./factories/events";
 import FabricsManager from "./factories/fabrics";
@@ -115,14 +111,7 @@ import ZonesManager from "./factories/zones";
 // controllers
 import MasterController from "./controllers/master";
 import AddDeviceController from "./controllers/add_device";
-import AddDomainController from "./controllers/add_domain";
-import DashboardController from "./controllers/dashboard";
-import DomainDetailsController from "./controllers/domain_details";
-import DomainsListController from "./controllers/domains_list";
 import FabricDetailsController from "./controllers/fabric_details";
-import ImagesController from "./controllers/images";
-import IntroUserController from "./controllers/intro_user";
-import IntroController from "./controllers/intro";
 import NetworksListController from "./controllers/networks_list";
 // prettier-ignore
 import {
@@ -141,8 +130,6 @@ import NodesListController from "./controllers/nodes_list";
 import SpaceDetailsController from "./controllers/space_details";
 import { SubnetDetailsController } from "./controllers/subnet_details";
 import { VLANDetailsController } from "./controllers/vlan_details";
-import ZoneDetailsController from "./controllers/zone_details";
-import ZonesListController from "./controllers/zones_list";
 
 // directives
 // prettier-ignore
@@ -154,7 +141,6 @@ import nodeDetailsSummary from "./directives/nodedetails/summary";
 import maasDhcpSnippetsTable from "./directives/dhcp_snippets_table";
 import nodesListFilter from "./directives/nodelist/nodes_list_filter";
 import { maasActionButton } from "./directives/action_button";
-import { maasBootImages, maasBootImagesStatus } from "./directives/boot_images";
 import { maasCta } from "./directives/call_to_action";
 import maasCardLoader from "./directives/card_loader";
 import maasCodeLines from "./directives/code_lines";
@@ -248,23 +234,11 @@ function introRedirect($rootScope, $window) {
   $rootScope.$on("$routeChangeStart", function (event, next, current) {
     if ($window.CONFIG && !$window.CONFIG.completed_intro) {
       if (next.controller !== "IntroController") {
-        navigateToLegacy("/intro");
+        navigateToNew("/intro");
       }
     } else if ($window.CONFIG && !$window.CONFIG.current_user.completed_intro) {
       if (next.controller !== "IntroUserController") {
-        navigateToLegacy("/intro/user");
-      }
-    }
-  });
-}
-
-/* @ngInject */
-function dashboardRedirect($rootScope, $window) {
-  $rootScope.$on("$routeChangeStart", function (event, next, current) {
-    // Only superusers currently have access to the dashboard
-    if ($window.CONFIG && !$window.CONFIG.current_user.is_superuser) {
-      if (next.controller == "DashboardController") {
-        navigateToNew("/machines");
+        navigateToNew("/intro/user");
       }
     }
   });
@@ -308,7 +282,6 @@ const MAAS = angular.module(maasModule, [
 
 MAAS.config(configureMaas)
   .run(configureSentry)
-  .run(dashboardRedirect)
   .run(introRedirect)
   .run(unhideRSDLinks)
   // Registration
@@ -341,13 +314,10 @@ MAAS.config(configureMaas)
   .filter("filterSelectedInterfaces", filterSelectedInterfaces)
   .filter("filterVLANNotOnFabric", filterVLANNotOnFabric)
   // factories
-  .factory("PollingManager", PollingManager)
-  .factory("BootResourcesManager", BootResourcesManager)
   .factory("ConfigsManager", ConfigsManager)
   .factory("ControllersManager", ControllersManager)
   .factory("DevicesManager", DevicesManager)
   .factory("DHCPSnippetsManager", DHCPSnippetsManager)
-  .factory("DiscoveriesManager", DiscoveriesManager)
   .factory("DomainsManager", DomainsManager)
   .factory("EventsManagerFactory", EventsManagerFactory)
   .factory("FabricsManager", FabricsManager)
@@ -385,14 +355,7 @@ MAAS.config(configureMaas)
   // controllers
   .controller("MasterController", MasterController)
   .controller("AddDeviceController", AddDeviceController)
-  .controller("AddDomainController", AddDomainController)
-  .controller("DashboardController", DashboardController)
-  .controller("DomainDetailsController", DomainDetailsController)
-  .controller("DomainsListController", DomainsListController)
   .controller("FabricDetailsController", FabricDetailsController)
-  .controller("ImagesController", ImagesController)
-  .controller("IntroUserController", IntroUserController)
-  .controller("IntroController", IntroController)
   .controller("NetworksListController", NetworksListController)
   .controller("NodeNetworkingController", NodeNetworkingController)
   .controller("NodeFilesystemsController", NodeFilesystemsController)
@@ -409,8 +372,6 @@ MAAS.config(configureMaas)
   .controller("SpaceDetailsController", SpaceDetailsController)
   .controller("SubnetDetailsController", SubnetDetailsController)
   .controller("VLANDetailsController", VLANDetailsController)
-  .controller("ZoneDetailsController", ZoneDetailsController)
-  .controller("ZonesListController", ZonesListController)
   // directives
   .directive("ngLoading", loading)
   .directive("storageDisksPartitions", storageDisksPartitions)
@@ -418,8 +379,6 @@ MAAS.config(configureMaas)
   .directive("storageDatastores", storageDatastores)
   .directive("nodesListFilter", nodesListFilter)
   .directive("maasActionButton", maasActionButton)
-  .directive("maasBootImagesStatus", maasBootImagesStatus)
-  .directive("maasBootImages", maasBootImages)
   .directive("maasCta", maasCta)
   .directive("maasCardLoader", maasCardLoader)
   .directive("maasCodeLines", maasCodeLines)

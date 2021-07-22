@@ -1,23 +1,23 @@
-import type { SliceCaseReducers } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 
-import type { GenericSlice } from "../utils";
-import { generateSlice } from "../utils";
+import { SpaceMeta } from "./types";
+import type { CreateParams, SpaceState, UpdateParams } from "./types";
 
-import type { Space, SpaceState } from "./types";
+import {
+  generateCommonReducers,
+  genericInitialState,
+} from "app/store/utils/slice";
 
-type SpaceReducers = SliceCaseReducers<SpaceState>;
-
-export type SpaceSlice = GenericSlice<SpaceState, Space, SpaceReducers>;
-
-const spaceSlice = generateSlice<
-  Space,
-  SpaceState["errors"],
-  SpaceReducers,
-  "id"
->({
-  indexKey: "id",
-  name: "space",
-}) as SpaceSlice;
+const spaceSlice = createSlice({
+  name: SpaceMeta.MODEL,
+  initialState: genericInitialState as SpaceState,
+  reducers: generateCommonReducers<
+    SpaceState,
+    SpaceMeta.PK,
+    CreateParams,
+    UpdateParams
+  >(SpaceMeta.MODEL, SpaceMeta.PK),
+});
 
 export const { actions } = spaceSlice;
 

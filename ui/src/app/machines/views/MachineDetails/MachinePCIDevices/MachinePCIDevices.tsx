@@ -2,15 +2,16 @@ import { useSelector } from "react-redux";
 import { useParams } from "react-router";
 
 import NodeDevices from "../NodeDevices";
-import type { SetSelectedAction } from "../types";
 
 import { useWindowTitle } from "app/base/hooks";
 import type { RouteParams } from "app/base/types";
+import type { MachineSetSelectedAction } from "app/machines/views/types";
 import machineSelectors from "app/store/machine/selectors";
+import { isMachineDetails } from "app/store/machine/utils";
 import { NodeDeviceBus } from "app/store/nodedevice/types";
 import type { RootState } from "app/store/root/types";
 
-type Props = { setSelectedAction: SetSelectedAction };
+type Props = { setSelectedAction: MachineSetSelectedAction };
 
 const MachinePCIDevices = ({
   setSelectedAction,
@@ -21,7 +22,7 @@ const MachinePCIDevices = ({
   );
   useWindowTitle(`${`${machine?.fqdn || "Machine"} `} PCI devices`);
 
-  if (machine && "numa_nodes" in machine) {
+  if (isMachineDetails(machine)) {
     return (
       <NodeDevices
         bus={NodeDeviceBus.PCIE}

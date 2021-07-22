@@ -11,10 +11,10 @@ import type { SetKvmType } from "../AddKVM";
 import AddVirshFields from "./AddVirshFields";
 
 import FormCard from "app/base/components/FormCard";
-import FormCardButtons from "app/base/components/FormCardButtons";
 import FormikForm from "app/base/components/FormikForm";
 import { useAddMessage } from "app/base/hooks";
 import type { TSFixMe } from "app/base/types";
+import kvmURLs from "app/kvm/urls";
 import { powerTypes as powerTypesSelectors } from "app/store/general/selectors";
 import { PowerFieldScope } from "app/store/general/types";
 import {
@@ -73,7 +73,6 @@ export const AddVirsh = ({ setKvmType }: Props): JSX.Element => {
   return (
     <FormCard sidebar={false} title="Add KVM">
       <FormikForm<AddVirshValues>
-        buttons={FormCardButtons}
         cleanup={cleanup}
         errors={podErrors}
         initialValues={{
@@ -83,13 +82,13 @@ export const AddVirsh = ({ setKvmType }: Props): JSX.Element => {
           type: PodType.VIRSH,
           zone: zones.length ? zones[0].id : "",
         }}
-        onCancel={() => history.push({ pathname: "/kvm" })}
+        onCancel={() => history.push({ pathname: kvmURLs.kvm })}
         onSaveAnalytics={{
           action: "Save virsh KVM",
           category: "Add KVM form",
           label: "Save KVM",
         }}
-        onSubmit={(values: AddVirshValues) => {
+        onSubmit={(values) => {
           const params = {
             name: values.name,
             pool: values.pool,
@@ -104,7 +103,7 @@ export const AddVirsh = ({ setKvmType }: Props): JSX.Element => {
         }}
         saving={podSaving}
         saved={podSaved}
-        savedRedirect="/kvm"
+        savedRedirect={kvmURLs.kvm}
         submitLabel="Save KVM"
         validationSchema={AddVirshSchema}
       >

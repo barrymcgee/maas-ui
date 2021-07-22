@@ -16,9 +16,10 @@ import {
   fabricState as fabricStateFactory,
   generalState as generalStateFactory,
   podDetails as podDetailsFactory,
-  podHint as podHintFactory,
+  podMemoryResource as podMemoryResourceFactory,
   podNuma as podNumaFactory,
   podNumaCores as podNumaCoresFactory,
+  podResource as podResourceFactory,
   podResources as podResourcesFactory,
   podState as podStateFactory,
   podStatus as podStatusFactory,
@@ -78,8 +79,13 @@ describe("ComposeFormFields", () => {
   it("correctly displays the available cores", () => {
     const state = { ...initialState };
     const pod = state.pod.items[0];
-    pod.total.cores = 10;
-    pod.used.cores = 8;
+    pod.resources = podResourcesFactory({
+      cores: podResourceFactory({
+        allocated_other: 1,
+        allocated_tracked: 2,
+        free: 3,
+      }),
+    });
     pod.cpu_over_commit_ratio = 3;
     const store = mockStore(state);
     const wrapper = mount(
@@ -88,22 +94,37 @@ describe("ComposeFormFields", () => {
           <Route
             exact
             path="/kvm/:id"
-            component={() => <ComposeForm setSelectedAction={jest.fn()} />}
+            component={() => <ComposeForm clearSelectedAction={jest.fn()} />}
           />
         </MemoryRouter>
       </Provider>
     );
-    // 10 * 3 - 8 = 22
+    // Allocated = 1 + 2 = 3
+    // Total = (1 + 2 + 3) * 3 = 18
+    // Available = 18 - 3 = 15
     expect(
       wrapper.find("FormikField[name='cores'] .p-form-help-text").text()
-    ).toEqual("22 cores available.");
+    ).toEqual("15 cores available.");
   });
 
   it("correctly displays the available memory", () => {
     const state = { ...initialState };
     const pod = state.pod.items[0];
-    pod.total.memory = 8000;
-    pod.used.memory = 5000;
+    const toMiB = (num: number) => num * 1024 ** 2;
+    pod.resources = podResourcesFactory({
+      memory: podMemoryResourceFactory({
+        general: podResourceFactory({
+          allocated_other: toMiB(1000),
+          allocated_tracked: toMiB(2000),
+          free: toMiB(3000),
+        }),
+        hugepages: podResourceFactory({
+          allocated_other: toMiB(4000),
+          allocated_tracked: toMiB(5000),
+          free: toMiB(6000),
+        }),
+      }),
+    });
     pod.memory_over_commit_ratio = 2;
     const store = mockStore(state);
     const wrapper = mount(
@@ -112,15 +133,18 @@ describe("ComposeFormFields", () => {
           <Route
             exact
             path="/kvm/:id"
-            component={() => <ComposeForm setSelectedAction={jest.fn()} />}
+            component={() => <ComposeForm clearSelectedAction={jest.fn()} />}
           />
         </MemoryRouter>
       </Provider>
     );
-    // 8000 * 2 - 5000 = 11000
+    // Allocated = (1000 + 2000) + (4000 + 5000) = 12000
+    // Hugepages do not take overcommit into account, so
+    // Total = ((1000 + 2000 + 3000) * 2) + (4000 + 5000 + 6000) = 12000 + 15000 = 27000
+    // Available = 27000 - 12000 = 15000
     expect(
       wrapper.find("FormikField[name='memory'] .p-form-help-text").text()
-    ).toEqual("11000 MiB available.");
+    ).toEqual("15000MiB available.");
   });
 
   it("shows warnings if available cores/memory is less than the default", () => {
@@ -136,9 +160,26 @@ describe("ComposeFormFields", () => {
         cpu_over_commit_ratio: 1,
         id: 1,
         memory_over_commit_ratio: 1,
-        total: podHintFactory({ cores: 2, memory: 2 }),
         type: PodType.VIRSH,
-        used: podHintFactory({ cores: 1, memory: 1 }),
+        resources: podResourcesFactory({
+          cores: podResourceFactory({
+            allocated_other: 0,
+            allocated_tracked: 0,
+            free: 1,
+          }),
+          memory: podMemoryResourceFactory({
+            general: podResourceFactory({
+              allocated_other: 0,
+              allocated_tracked: 0,
+              free: 1,
+            }),
+            hugepages: podResourceFactory({
+              allocated_other: 0,
+              allocated_tracked: 0,
+              free: 0,
+            }),
+          }),
+        }),
       }),
     ];
     const store = mockStore(state);
@@ -148,7 +189,7 @@ describe("ComposeFormFields", () => {
           <Route
             exact
             path="/kvm/:id"
-            component={() => <ComposeForm setSelectedAction={jest.fn()} />}
+            component={() => <ComposeForm clearSelectedAction={jest.fn()} />}
           />
         </MemoryRouter>
       </Provider>
@@ -363,7 +404,7 @@ describe("ComposeFormFields", () => {
           <Route
             exact
             path="/kvm/:id"
-            component={() => <ComposeForm setSelectedAction={jest.fn()} />}
+            component={() => <ComposeForm clearSelectedAction={jest.fn()} />}
           />
         </MemoryRouter>
       </Provider>
@@ -390,11 +431,11 @@ describe("ComposeFormFields", () => {
     );
   });
 
-  it("shows an error if trying to pin more cores than are available", async () => {
+  it("shows an error if there are no cores available to pin", async () => {
     const state = { ...initialState };
-    state.pod.items[0].available.cores = 1;
-    state.pod.items[0].total.cores = 1;
-    state.pod.items[0].used.cores = 0;
+    state.pod.items[0].resources = podResourcesFactory({
+      cores: podResourceFactory({ free: 0 }),
+    });
     state.pod.items[0].cpu_over_commit_ratio = 1;
     const store = mockStore(state);
     const wrapper = mount(
@@ -403,7 +444,39 @@ describe("ComposeFormFields", () => {
           <Route
             exact
             path="/kvm/:id"
-            component={() => <ComposeForm setSelectedAction={jest.fn()} />}
+            component={() => <ComposeForm clearSelectedAction={jest.fn()} />}
+          />
+        </MemoryRouter>
+      </Provider>
+    );
+
+    // Switch to pinning cores
+    wrapper.find("input[id='pinning-cores']").simulate("change", {
+      target: {
+        name: "pinning-cores",
+        checked: true,
+      },
+    });
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find("Input[name='pinnedCores']").prop("error")).toBe(
+      "There are no cores available to pin."
+    );
+  });
+
+  it("shows an error if trying to pin more cores than are available", async () => {
+    const state = { ...initialState };
+    state.pod.items[0].resources = podResourcesFactory({
+      cores: podResourceFactory({ free: 1 }),
+    });
+    state.pod.items[0].cpu_over_commit_ratio = 1;
+    const store = mockStore(state);
+    const wrapper = mount(
+      <Provider store={store}>
+        <MemoryRouter initialEntries={[{ pathname: "/kvm/1", key: "testKey" }]}>
+          <Route
+            exact
+            path="/kvm/:id"
+            component={() => <ComposeForm clearSelectedAction={jest.fn()} />}
           />
         </MemoryRouter>
       </Provider>
@@ -455,7 +528,7 @@ describe("ComposeFormFields", () => {
           <Route
             exact
             path="/kvm/:id"
-            component={() => <ComposeForm setSelectedAction={jest.fn()} />}
+            component={() => <ComposeForm clearSelectedAction={jest.fn()} />}
           />
         </MemoryRouter>
       </Provider>

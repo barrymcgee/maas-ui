@@ -13,6 +13,8 @@ import SettingsTable from "app/settings/components/SettingsTable";
 import TableActions from "app/base/components/TableActions";
 import TableDeleteConfirm from "app/base/components/TableDeleteConfirm";
 import TableHeader from "app/base/components/TableHeader";
+import prefsURLs from "app/preferences/urls";
+import settingsURLs from "app/settings/urls";
 
 const generateUserRows = (
   users,
@@ -21,7 +23,9 @@ const generateUserRows = (
   setExpandedId,
   dispatch,
   displayUsername,
-  setDeleting
+  setDeleting,
+  saved,
+  saving
 ) =>
   users.map((user) => {
     const expanded = expandedId === user.id;
@@ -59,8 +63,8 @@ const generateUserRows = (
               deleteTooltip={isAuthUser && "You cannot delete your own user."}
               editPath={
                 isAuthUser
-                  ? "/account/prefs/details"
-                  : `/settings/users/${user.id}/edit`
+                  ? prefsURLs.details
+                  : settingsURLs.users.edit({ id: user.id })
               }
               onDelete={() => setExpandedId(user.id)}
             />
@@ -71,13 +75,14 @@ const generateUserRows = (
       expanded: expanded,
       expandedContent: expanded && (
         <TableDeleteConfirm
+          deleted={saved}
+          deleting={saving}
           modelName={user.username}
           modelType="user"
-          onCancel={setExpandedId}
+          onClose={setExpandedId}
           onConfirm={() => {
             dispatch(userActions.delete(user.id));
             setDeleting(user.username);
-            setExpandedId();
           }}
         />
       ),
@@ -126,6 +131,7 @@ const Users = () => {
   const loaded = useSelector(userSelectors.loaded);
   const authUser = useSelector(authSelectors.get);
   const saved = useSelector(userSelectors.saved);
+  const saving = useSelector(userSelectors.saving);
   const externalAuthURL = useSelector(statusSelectors.externalAuthURL);
   const dispatch = useDispatch();
 
@@ -176,7 +182,7 @@ const Users = () => {
 
   return (
     <SettingsTable
-      buttons={[{ label: "Add user", url: "/settings/users/add" }]}
+      buttons={[{ label: "Add user", url: settingsURLs.users.add }]}
       headers={[
         {
           content: (
@@ -259,7 +265,9 @@ const Users = () => {
         setExpandedId,
         dispatch,
         displayUsername,
-        setDeleting
+        setDeleting,
+        saved,
+        saving
       )}
       searchOnChange={setSearchText}
       searchPlaceholder="Search users"

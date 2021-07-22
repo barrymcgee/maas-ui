@@ -1,23 +1,23 @@
-import type { SliceCaseReducers } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 
-import type { GenericSlice } from "../utils";
-import { generateSlice } from "../utils";
+import { SubnetMeta } from "./types";
+import type { CreateParams, SubnetState, UpdateParams } from "./types";
 
-import type { Subnet, SubnetState } from "./types";
+import {
+  generateCommonReducers,
+  genericInitialState,
+} from "app/store/utils/slice";
 
-type SubnetReducers = SliceCaseReducers<SubnetState>;
-
-export type SubnetSlice = GenericSlice<SubnetState, Subnet, SubnetReducers>;
-
-const subnetSlice = generateSlice<
-  Subnet,
-  SubnetState["errors"],
-  SubnetReducers,
-  "id"
->({
-  indexKey: "id",
-  name: "subnet",
-}) as SubnetSlice;
+const subnetSlice = createSlice({
+  name: SubnetMeta.MODEL,
+  initialState: genericInitialState as SubnetState,
+  reducers: generateCommonReducers<
+    SubnetState,
+    SubnetMeta.PK,
+    CreateParams,
+    UpdateParams
+  >(SubnetMeta.MODEL, SubnetMeta.PK),
+});
 
 export const { actions } = subnetSlice;
 

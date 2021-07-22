@@ -7,6 +7,7 @@ import SettingsTable from "app/settings/components/SettingsTable";
 import TableActions from "app/base/components/TableActions";
 import TableDeleteConfirm from "app/base/components/TableDeleteConfirm";
 
+import settingsURLs from "app/settings/urls";
 import { actions as licenseKeysActions } from "app/store/licensekeys";
 import { actions as generalActions } from "app/store/general";
 import { osInfo as osInfoSelectors } from "app/store/general/selectors";
@@ -18,7 +19,9 @@ const generateRows = (
   setExpandedId,
   hideExpanded,
   dispatch,
-  setDeleting
+  setDeleting,
+  saved,
+  saving
 ) =>
   licenseKeys.map((licenseKey) => {
     const expanded = expandedId === licenseKey.license_key;
@@ -36,7 +39,10 @@ const generateRows = (
         {
           content: (
             <TableActions
-              editPath={`/settings/license-keys/${licenseKey.osystem}/${licenseKey.distro_series}/edit`}
+              editPath={settingsURLs.licenseKeys.edit({
+                distro_series: licenseKey.distro_series,
+                osystem: licenseKey.osystem,
+              })}
               onDelete={() => setExpandedId(licenseKey.license_key)}
             />
           ),
@@ -46,13 +52,14 @@ const generateRows = (
       expanded: expanded,
       expandedContent: expanded && (
         <TableDeleteConfirm
+          deleted={saved}
+          deleting={saving}
           modelName={`${licenseKey.osystem} (${licenseKey.distro_series})`}
           modelType="license key"
-          onCancel={hideExpanded}
+          onClose={hideExpanded}
           onConfirm={() => {
             dispatch(licenseKeysActions.delete(licenseKey));
             setDeleting(licenseKey);
-            hideExpanded();
           }}
         />
       ),
@@ -76,6 +83,7 @@ const LicenseKeyList = () => {
   const hasErrors = useSelector(licenseKeysSelectors.hasErrors);
   const errors = useSelector(licenseKeysSelectors.errors);
   const saved = useSelector(licenseKeysSelectors.saved);
+  const saving = useSelector(licenseKeysSelectors.saving);
 
   const licenseKeys = useSelector((state) =>
     licenseKeysSelectors.search(state, searchText)
@@ -121,7 +129,7 @@ const LicenseKeyList = () => {
       buttons={[
         {
           label: "Add license key",
-          url: "/settings/license-keys/add",
+          url: settingsURLs.licenseKeys.add,
           disabled: addBtnDisabled,
           tooltip,
         },
@@ -148,7 +156,9 @@ const LicenseKeyList = () => {
         setExpandedId,
         hideExpanded,
         dispatch,
-        setDeleting
+        setDeleting,
+        saved,
+        saving
       )}
       searchOnChange={setSearchText}
       searchPlaceholder="Search license keys"

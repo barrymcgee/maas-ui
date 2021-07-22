@@ -56,6 +56,7 @@ describe("GeneralManager", function () {
       "region_and_rack_controller_actions",
       "architectures",
       "known_architectures",
+      "known_boot_architectures",
       "pockets_to_disable",
       "components_to_disable",
       "hwe_kernels",
@@ -339,6 +340,7 @@ describe("GeneralManager", function () {
       GeneralManager._data.region_and_rack_controller_actions.loaded = true;
       GeneralManager._data.architectures.loaded = true;
       GeneralManager._data.known_architectures.loaded = true;
+      GeneralManager._data.known_boot_architectures.loaded = true;
       GeneralManager._data.pockets_to_disable.loaded = true;
       GeneralManager._data.components_to_disable.loaded = true;
       GeneralManager._data.hwe_kernels.loaded = true;
@@ -661,16 +663,6 @@ describe("GeneralManager", function () {
       GeneralManager.disableAutoReload();
       expect(RegionConnection.unregisterHandler).toHaveBeenCalled();
       expect(GeneralManager._autoReload).toBe(false);
-    });
-  });
-
-  describe("getNavigationOptions", () => {
-    it("calls callMethod with action parameter", () => {
-      spyOn(RegionConnection, "callMethod");
-      GeneralManager.getNavigationOptions();
-      expect(RegionConnection.callMethod).toHaveBeenCalledWith(
-        "general.navigation_options"
-      );
     });
   });
 });

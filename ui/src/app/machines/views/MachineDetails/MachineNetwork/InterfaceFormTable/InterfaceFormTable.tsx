@@ -16,17 +16,15 @@ import type { Selected, SetSelected } from "../NetworkTable/types";
 
 import TableHeader from "app/base/components/TableHeader";
 import machineSelectors from "app/store/machine/selectors";
-import type {
-  NetworkInterface,
-  NetworkLink,
-  Machine,
-} from "app/store/machine/types";
+import type { Machine } from "app/store/machine/types";
 import {
   getInterfaceById,
   getInterfaceName,
   getLinkFromNic,
+  isMachineDetails,
 } from "app/store/machine/utils";
 import type { RootState } from "app/store/root/types";
+import type { NetworkInterface, NetworkLink } from "app/store/types/node";
 import { generateCheckboxHandlers, simpleSortByKey } from "app/utils";
 import type { CheckboxHandlers } from "app/utils/generateCheckboxHandlers";
 
@@ -141,7 +139,7 @@ const InterfaceFormTable = ({
     handleRowCheckbox = handlers.handleRowCheckbox;
   }
 
-  if (!machine || !("interfaces" in machine) || interfaces.length === 0) {
+  if (!isMachineDetails(machine) || interfaces.length === 0) {
     return <Spinner />;
   }
 

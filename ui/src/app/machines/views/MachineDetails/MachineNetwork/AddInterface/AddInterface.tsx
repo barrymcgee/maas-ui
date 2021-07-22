@@ -12,7 +12,6 @@ import {
 import type { NetworkValues } from "../NetworkFields/NetworkFields";
 
 import FormCard from "app/base/components/FormCard";
-import FormCardButtons from "app/base/components/FormCardButtons";
 import FormikField from "app/base/components/FormikField";
 import FormikForm from "app/base/components/FormikForm";
 import MacAddressField from "app/base/components/MacAddressField";
@@ -23,13 +22,14 @@ import { useMachineDetailsForm } from "app/machines/hooks";
 import { actions as machineActions } from "app/store/machine";
 import machineSelectors from "app/store/machine/selectors";
 import type {
-  Machine,
+  CreatePhysicalParams,
   MachineDetails,
-  NetworkInterface,
 } from "app/store/machine/types";
-import { NetworkInterfaceTypes } from "app/store/machine/types";
-import { getNextNicName } from "app/store/machine/utils";
+import { getNextNicName, isMachineDetails } from "app/store/machine/utils";
 import type { RootState } from "app/store/root/types";
+import { NetworkInterfaceTypes } from "app/store/types/enum";
+import type { NetworkInterface } from "app/store/types/node";
+import { preparePayload } from "app/utils";
 
 type Props = {
   close: () => void;
@@ -66,20 +66,19 @@ const AddInterface = ({ close, systemId }: Props): JSX.Element | null => {
   );
   const onRenderRef = useScrollOnRender<HTMLDivElement>();
 
-  if (!machine || !("interfaces" in machine)) {
+  if (!isMachineDetails(machine)) {
     return <Spinner text="Loading..." />;
   }
   return (
     <div ref={onRenderRef}>
       <FormCard sidebar={false}>
-        <FormikForm
-          buttons={FormCardButtons}
+        <FormikForm<AddInterfaceValues>
           cleanup={cleanup}
           errors={errors}
           initialValues={{
             ...networkFieldsInitialValues,
             mac_address: "",
-            name: nextName,
+            name: nextName || "",
             tags: [],
           }}
           onSaveAnalytics={{
@@ -88,22 +87,13 @@ const AddInterface = ({ close, systemId }: Props): JSX.Element | null => {
             label: "Add interface form",
           }}
           onCancel={close}
-          onSubmit={(values: AddInterfaceValues) => {
+          onSubmit={(values) => {
             // Clear the errors from the previous submission.
             dispatch(cleanup());
-            type Payload = AddInterfaceValues & {
-              system_id: Machine["system_id"];
-            };
-            const payload: Payload = {
+            const payload = preparePayload({
               ...values,
               system_id: systemId,
-            };
-            // Remove all empty values.
-            Object.entries(payload).forEach(([key, value]) => {
-              if (value === "") {
-                delete payload[key as keyof Payload];
-              }
-            });
+            }) as CreatePhysicalParams;
             dispatch(machineActions.createPhysical(payload));
           }}
           resetOnSave

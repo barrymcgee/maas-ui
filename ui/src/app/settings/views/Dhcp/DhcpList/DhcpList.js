@@ -20,6 +20,7 @@ import DhcpTarget from "app/settings/views/Dhcp/DhcpTarget";
 import SettingsTable from "app/settings/components/SettingsTable";
 import TableActions from "app/base/components/TableActions";
 import TableDeleteConfirm from "app/base/components/TableDeleteConfirm";
+import settingsURLs from "app/settings/urls";
 
 const getTargetName = (
   controllers,
@@ -54,7 +55,9 @@ const generateRows = (
   subnets,
   hideExpanded,
   dispatch,
-  setDeleting
+  setDeleting,
+  saved,
+  saving
 ) =>
   dhcpsnippets.map((dhcpsnippet) => {
     const expanded = expandedId === dhcpsnippet.id;
@@ -105,7 +108,7 @@ const generateRows = (
         {
           content: (
             <TableActions
-              editPath={`/settings/dhcp/${dhcpsnippet.id}/edit`}
+              editPath={settingsURLs.dhcp.edit({ id: dhcpsnippet.id })}
               onDelete={() => {
                 setExpandedId(dhcpsnippet.id);
                 setExpandedType("delete");
@@ -120,13 +123,14 @@ const generateRows = (
         expanded &&
         (showDelete ? (
           <TableDeleteConfirm
+            deleted={saved}
+            deleting={saving}
             modelName={dhcpsnippet.name}
             modelType="DHCP snippet"
-            onCancel={hideExpanded}
+            onClose={hideExpanded}
             onConfirm={() => {
               dispatch(dhcpsnippetActions.delete(dhcpsnippet.id));
               setDeleting(dhcpsnippet.name);
-              hideExpanded();
             }}
           />
         ) : (
@@ -165,6 +169,7 @@ const DhcpList = () => {
     dhcpsnippetSelectors.search(state, searchText)
   );
   const saved = useSelector(dhcpsnippetSelectors.saved);
+  const saving = useSelector(dhcpsnippetSelectors.saving);
   const subnets = useSelector(subnetSelectors.all);
   const controllers = useSelector(controllerSelectors.all);
   const devices = useSelector(deviceSelectors.all);
@@ -197,7 +202,7 @@ const DhcpList = () => {
 
   return (
     <SettingsTable
-      buttons={[{ label: "Add snippet", url: "/settings/dhcp/add" }]}
+      buttons={[{ label: "Add snippet", url: settingsURLs.dhcp.add }]}
       headers={[
         {
           content: "Snippet name",
@@ -244,7 +249,9 @@ const DhcpList = () => {
         subnets,
         hideExpanded,
         dispatch,
-        setDeleting
+        setDeleting,
+        saved,
+        saving
       )}
       searchOnChange={setSearchText}
       searchPlaceholder="Search DHCP snippets"

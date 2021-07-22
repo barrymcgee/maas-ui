@@ -1,4 +1,5 @@
 export {
+  bootResourceState,
   architecturesState,
   authState,
   bondOptionsState,
@@ -8,6 +9,7 @@ export {
   defaultMinHweKernelState,
   deviceState,
   dhcpSnippetState,
+  discoveryState,
   domainState,
   eventState,
   fabricState,
@@ -22,7 +24,6 @@ export {
   machineStatus,
   machineStatuses,
   messageState,
-  navigationOptionsState,
   nodeDeviceState,
   nodeScriptResultState,
   notificationState,
@@ -51,8 +52,23 @@ export {
   vlanState,
   zoneState,
 } from "./state";
+export {
+  bootResource,
+  bootResourceEventError,
+  bootResourceFetchedArch,
+  bootResourceFetchedImages,
+  bootResourceFetchedRelease,
+  bootResourceOtherImage,
+  bootResourceStatuses,
+  bootResourceUbuntu,
+  bootResourceUbuntuArch,
+  bootResourceUbuntuCoreImage,
+  bootResourceUbuntuRelease,
+  bootResourceUbuntuSource,
+} from "./bootresource";
 export { config } from "./config";
-export { domain } from "./domain";
+export { discovery } from "./discovery";
+export { domain, domainDetails, domainResource } from "./domain";
 export { eventRecord, eventType } from "./event";
 export {
   controller,
@@ -72,7 +88,6 @@ export {
   networkLink,
   pod,
   podDetails,
-  podHint,
   podMemoryResource,
   podNetworkInterface,
   podNuma,
@@ -80,12 +95,12 @@ export {
   podNumaGeneralMemory,
   podNumaHugepageMemory,
   podNumaMemory,
-  podNumaNode,
   podProject,
   podResource,
   podResources,
   podStoragePool,
   podVM,
+  podVmCount,
   testStatus,
 } from "./nodes";
 export { dhcpSnippet } from "./dhcpsnippet";
@@ -99,7 +114,6 @@ export {
   hweKernel,
   knownArchitecture,
   machineAction,
-  navigationOptions,
   osInfo,
   osInfoOS,
   osInfoKernels,
@@ -110,6 +124,7 @@ export {
   version,
 } from "./general";
 export { message } from "./message";
+export { modelRef } from "./model";
 export { nodeDevice } from "./nodedevice";
 export { notification } from "./notification";
 export { packageRepository } from "./packagerepository";
@@ -128,6 +143,6 @@ export { sslKey } from "./sslkey";
 export { subnet, subnetStatistics, subnetStatisticsRange } from "./subnet";
 export { tag } from "./tag";
 export { token } from "./token";
-export { user } from "./user";
+export { user, userEventError, userStatuses } from "./user";
 export { vlan } from "./vlan";
 export { zone } from "./zone";

@@ -12,8 +12,8 @@ import { RepositoryShape } from "app/settings/proptypes";
 import { useAddMessage } from "app/base/hooks";
 import { useWindowTitle } from "app/base/hooks";
 import FormCard from "app/base/components/FormCard";
-import FormCardButtons from "app/base/components/FormCardButtons";
 import FormikForm from "app/base/components/FormikForm";
+import settingsURLs from "app/settings/urls";
 import {
   componentsToDisable as componentsToDisableSelectors,
   knownArchitectures as knownArchitecturesSelectors,
@@ -118,12 +118,11 @@ export const RepositoryForm = ({ type, repository }) => {
       ) : (
         <FormCard title={title}>
           <FormikForm
-            buttons={FormCardButtons}
             cleanup={repositoryActions.cleanup}
             errors={errors}
             initialValues={initialValues}
             onCancel={() =>
-              history.push({ pathname: "/settings/repositories" })
+              history.push({ pathname: settingsURLs.repositories.index })
             }
             onSaveAnalytics={{
               action: "Saved",
@@ -165,7 +164,7 @@ export const RepositoryForm = ({ type, repository }) => {
             }}
             saving={repositoriesSaving}
             saved={repositoriesSaved}
-            savedRedirect="/settings/repositories"
+            savedRedirect={settingsURLs.repositories.index}
             submitLabel={`Save ${typeString}`}
             validationSchema={RepositorySchema}
           >

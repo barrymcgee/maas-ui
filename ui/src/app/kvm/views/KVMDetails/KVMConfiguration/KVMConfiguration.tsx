@@ -4,19 +4,17 @@ import { Button, Col, Row, Spinner } from "@canonical/react-components";
 import { useDispatch, useSelector } from "react-redux";
 import * as Yup from "yup";
 
-import type { SetSelectedAction } from "../KVMDetails";
-import { KVMAction } from "../KVMDetails";
+import type { KVMSetSelectedAction } from "../KVMDetails";
 
 import KVMConfigurationFields from "./KVMConfigurationFields";
 
 import FormCard from "app/base/components/FormCard";
-import FormCardButtons from "app/base/components/FormCardButtons";
 import FormikForm from "app/base/components/FormikForm";
 import { useWindowTitle } from "app/base/hooks";
 import { actions as podActions } from "app/store/pod";
 import podSelectors from "app/store/pod/selectors";
 import type { Pod } from "app/store/pod/types";
-import { PodType } from "app/store/pod/types";
+import { PodType, PodAction } from "app/store/pod/types";
 import { actions as resourcePoolActions } from "app/store/resourcepool";
 import resourcePoolSelectors from "app/store/resourcepool/selectors";
 import type { RootState } from "app/store/root/types";
@@ -52,7 +50,7 @@ export type KVMConfigurationValues = {
 
 type Props = {
   id: Pod["id"];
-  setSelectedAction: SetSelectedAction;
+  setSelectedAction: KVMSetSelectedAction;
 };
 
 const KVMConfiguration = ({ id, setSelectedAction }: Props): JSX.Element => {
@@ -88,38 +86,37 @@ const KVMConfiguration = ({ id, setSelectedAction }: Props): JSX.Element => {
     return (
       <>
         <FormCard sidebar={false} title="KVM configuration">
-          <FormikForm
-            buttons={FormCardButtons}
+          <FormikForm<KVMConfigurationValues>
             cleanup={cleanup}
             errors={errors}
             initialValues={{
               cpu_over_commit_ratio: pod.cpu_over_commit_ratio,
               memory_over_commit_ratio: pod.memory_over_commit_ratio,
               password: podPassword || "",
-              pool: `${pod.pool}`, // Convert to string for valid options HTML, also API expects string
+              pool: pod.pool,
               power_address: pod.power_address,
               tags: pod.tags,
               type: pod.type,
-              zone: `${pod.zone}`, // Convert to string for valid options HTML, also API expects string
+              zone: pod.zone,
             }}
             onSaveAnalytics={{
               action: "Edit KVM",
               category: "KVM details settings",
               label: "KVM configuration form",
             }}
-            onSubmit={(values: KVMConfigurationValues) => {
+            onSubmit={(values) => {
               const params = {
                 cpu_over_commit_ratio: values.cpu_over_commit_ratio,
                 id: pod.id,
                 memory_over_commit_ratio: values.memory_over_commit_ratio,
                 password:
                   (values.type === "lxd" && values.password) || undefined,
-                pool: values.pool,
+                pool: Number(values.pool),
                 power_address: values.power_address,
                 power_pass:
                   (values.type !== "lxd" && values.password) || undefined,
                 tags: values.tags.join(","), // API expects comma-separated string
-                zone: values.zone,
+                zone: Number(values.zone),
               };
               dispatch(podActions.update(params));
             }}
@@ -147,7 +144,7 @@ const KVMConfiguration = ({ id, setSelectedAction }: Props): JSX.Element => {
                 <Button
                   appearance="neutral"
                   data-test="remove-kvm"
-                  onClick={() => setSelectedAction(KVMAction.DELETE)}
+                  onClick={() => setSelectedAction(PodAction.DELETE)}
                 >
                   Remove KVM
                 </Button>

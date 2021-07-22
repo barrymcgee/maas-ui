@@ -25,11 +25,7 @@ import { actions as fabricActions } from "app/store/fabric";
 import fabricSelectors from "app/store/fabric/selectors";
 import type { Fabric } from "app/store/fabric/types";
 import machineSelectors from "app/store/machine/selectors";
-import type {
-  NetworkInterface,
-  NetworkLink,
-  Machine,
-} from "app/store/machine/types";
+import type { Machine } from "app/store/machine/types";
 import {
   getInterfaceFabric,
   getInterfaceIPAddressOrMode,
@@ -40,6 +36,7 @@ import {
   isBondOrBridgeChild,
   isBondOrBridgeParent,
   isBootInterface,
+  isMachineDetails,
   useIsAllNetworkingDisabled,
 } from "app/store/machine/utils";
 import type { RootState } from "app/store/root/types";
@@ -47,6 +44,7 @@ import { actions as subnetActions } from "app/store/subnet";
 import subnetSelectors from "app/store/subnet/selectors";
 import type { Subnet } from "app/store/subnet/types";
 import { getSubnetDisplay } from "app/store/subnet/utils";
+import type { NetworkInterface, NetworkLink } from "app/store/types/node";
 import { actions as vlanActions } from "app/store/vlan";
 import vlanSelectors from "app/store/vlan/selectors";
 import type { VLAN } from "app/store/vlan/types";
@@ -140,7 +138,7 @@ const generateRow = (
     : null;
   return {
     className: classNames("p-table__row", {
-      "indented-border": isABondOrBridgeParent,
+      "truncated-border": isABondOrBridgeParent,
       "is-active": isExpanded,
     }),
     columns: [
@@ -252,7 +250,7 @@ const generateRows = (
   vlans: VLAN[],
   vlansLoaded: boolean
 ): NetworkRow[] => {
-  if (!machine || !("interfaces" in machine)) {
+  if (!isMachineDetails(machine)) {
     return [];
   }
   const rows: NetworkRow[] = [];
@@ -409,6 +407,7 @@ const NetworkTable = ({
     rowSort
   );
   const {
+    checkAllSelected,
     checkSelected,
     handleGroupCheckbox,
     handleRowCheckbox,
@@ -420,7 +419,7 @@ const NetworkTable = ({
     dispatch(vlanActions.fetch());
   }, [dispatch]);
 
-  if (!machine || !("interfaces" in machine)) {
+  if (!isMachineDetails(machine)) {
     return <Spinner text="Loading..." />;
   }
 
@@ -457,6 +456,7 @@ const NetworkTable = ({
           content: (
             <>
               <GroupCheckbox
+                checkAllSelected={checkAllSelected}
                 checkSelected={checkSelected}
                 disabled={isAllNetworkingDisabled}
                 items={selectableIDs}

@@ -8,9 +8,9 @@ import AddMachineFormFields from "../AddMachineFormFields";
 import { actions as machineActions } from "app/store/machine";
 import { actions as generalActions } from "app/store/general";
 import FormCard from "app/base/components/FormCard";
-import FormCardButtons from "app/base/components/FormCardButtons";
 import FormikForm from "app/base/components/FormikForm";
 import { useAddMessage, useWindowTitle } from "app/base/hooks";
+import machineURLs from "app/machines/urls";
 import { MAC_ADDRESS_REGEX } from "app/base/validation";
 import { actions as domainActions } from "app/store/domain";
 import domainSelectors from "app/store/domain/selectors";
@@ -122,7 +122,6 @@ export const AddMachineForm = () => {
       ) : (
         <FormCard sidebar={false} title="Add machine">
           <FormikForm
-            buttons={FormCardButtons}
             buttonsHelpLabel="Help with adding machines"
             buttonsHelpLink="https://maas.io/docs/add-machines"
             cleanup={machineActions.cleanup}
@@ -139,7 +138,9 @@ export const AddMachineForm = () => {
               pxe_mac: "",
               zone: (zones.length && zones[0].name) || "",
             }}
-            onCancel={() => history.push({ pathname: "/machines" })}
+            onCancel={() =>
+              history.push({ pathname: machineURLs.machines.index })
+            }
             onSaveAnalytics={{
               action: resetOnSave ? "Save and add another" : "Save",
               category: "Machine",
@@ -173,8 +174,11 @@ export const AddMachineForm = () => {
             resetOnSave={resetOnSave}
             saving={machineSaving}
             saved={machineSaved}
-            savedRedirect={resetOnSave ? undefined : "/machines"}
-            secondarySubmit={() => setResetOnSave(true)}
+            savedRedirect={resetOnSave ? undefined : machineURLs.machines.index}
+            secondarySubmit={(_, { submitForm }) => {
+              setResetOnSave(true);
+              submitForm();
+            }}
             secondarySubmitLabel="Save and add another"
             submitLabel="Save machine"
             validationSchema={AddMachineSchema}

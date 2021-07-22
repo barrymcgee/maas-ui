@@ -1,40 +1,28 @@
-import type {
-  CaseReducer,
-  PayloadAction,
-  SliceCaseReducers,
-} from "@reduxjs/toolkit";
+import type { PayloadAction } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 
-import { generateSlice } from "../utils";
+import { NotificationMeta } from "./types";
+import type { CreateParams, Notification, NotificationState } from "./types";
 
-import type { Notification, NotificationState } from "./types";
+import {
+  generateCommonReducers,
+  genericInitialState,
+} from "app/store/utils/slice";
 
-import type { GenericSlice } from "app/store/utils";
-
-type NotificationReducers = SliceCaseReducers<NotificationState> & {
-  // Overrides for reducers that don't take a payload.
-  dismissStart: CaseReducer<NotificationState, PayloadAction<void>>;
-  dismissSuccess: CaseReducer<NotificationState, PayloadAction<void>>;
-};
-
-export type NotificationSlice = GenericSlice<
-  NotificationState,
-  Notification,
-  NotificationReducers
->;
-
-const notificationSlice = generateSlice<
-  Notification,
-  NotificationState["errors"],
-  NotificationReducers,
-  "id"
->({
-  indexKey: "id",
-  name: "notification",
+const notificationSlice = createSlice({
+  name: NotificationMeta.MODEL,
+  initialState: genericInitialState as NotificationState,
   reducers: {
+    ...generateCommonReducers<
+      NotificationState,
+      NotificationMeta.PK,
+      CreateParams,
+      void
+    >(NotificationMeta.MODEL, NotificationMeta.PK),
     dismiss: {
-      prepare: (id: Notification["id"]) => ({
+      prepare: (id: Notification[NotificationMeta.PK]) => ({
         meta: {
-          model: "notification",
+          model: NotificationMeta.MODEL,
           method: "dismiss",
         },
         payload: {
@@ -64,7 +52,7 @@ const notificationSlice = generateSlice<
       state.saving = false;
     },
   },
-}) as NotificationSlice;
+});
 
 export const { actions } = notificationSlice;
 

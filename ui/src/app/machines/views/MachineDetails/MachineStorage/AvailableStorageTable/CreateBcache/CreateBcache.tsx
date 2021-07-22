@@ -3,19 +3,23 @@ import * as Yup from "yup";
 
 import CreateBcacheFields from "./CreateBcacheFields";
 
-import FormCardButtons from "app/base/components/FormCardButtons";
 import FormikForm from "app/base/components/FormikForm";
 import { useMachineDetailsForm } from "app/machines/hooks";
 import { actions as machineActions } from "app/store/machine";
 import machineSelectors from "app/store/machine/selectors";
 import type { Disk, Machine, Partition } from "app/store/machine/types";
 import { BcacheModes } from "app/store/machine/types";
-import { isBcache, isCacheSet, isDisk } from "app/store/machine/utils";
+import {
+  isBcache,
+  isCacheSet,
+  isDisk,
+  isMachineDetails,
+} from "app/store/machine/utils";
 import type { RootState } from "app/store/root/types";
 
 export type CreateBcacheValues = {
   cacheMode: BcacheModes;
-  cacheSetId: string;
+  cacheSetId: number;
   fstype?: string;
   mountOptions?: string;
   mountPoint?: string;
@@ -69,7 +73,7 @@ export const CreateBcache = ({
     machineSelectors.getById(state, systemId)
   );
 
-  if (machine && "disks" in machine) {
+  if (isMachineDetails(machine)) {
     const cacheSets = machine.disks.filter((disk) => isCacheSet(disk));
 
     if (cacheSets.length === 0) {
@@ -80,9 +84,8 @@ export const CreateBcache = ({
     }
 
     return (
-      <FormikForm
+      <FormikForm<CreateBcacheValues>
         allowUnchanged
-        buttons={FormCardButtons}
         cleanup={machineActions.cleanup}
         errors={errors}
         initialValues={{
@@ -100,7 +103,7 @@ export const CreateBcache = ({
           category: "Machine storage",
           label: "Create bcache",
         }}
-        onSubmit={(values: CreateBcacheValues) => {
+        onSubmit={(values) => {
           const {
             cacheMode,
             cacheSetId,
@@ -113,7 +116,7 @@ export const CreateBcache = ({
 
           const params = {
             cacheMode,
-            cacheSetId,
+            cacheSetId: Number(cacheSetId),
             name,
             systemId: machine.system_id,
             ...(isDisk(storageDevice) && { blockId: storageDevice.id }),

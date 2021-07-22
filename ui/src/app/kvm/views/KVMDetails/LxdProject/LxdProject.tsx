@@ -6,9 +6,10 @@ import ProjectSummaryCard from "./ProjectSummaryCard";
 import ProjectVMs from "./ProjectVMs";
 
 import { useWindowTitle } from "app/base/hooks";
+import kvmURLs from "app/kvm/urls";
 import type {
+  KVMSetSelectedAction,
   SetSearchFilter,
-  SetSelectedAction,
 } from "app/kvm/views/KVMDetails";
 import podSelectors from "app/store/pod/selectors";
 import type { Pod } from "app/store/pod/types";
@@ -19,7 +20,7 @@ type Props = {
   id: Pod["id"];
   searchFilter: string;
   setSearchFilter: SetSearchFilter;
-  setSelectedAction: SetSelectedAction;
+  setSelectedAction: KVMSetSelectedAction;
 };
 
 const LxdProject = ({
@@ -48,7 +49,7 @@ const LxdProject = ({
   }
 
   if (pod.type !== PodType.LXD) {
-    return <Redirect to={`/kvm/${id}/resources`} />;
+    return <Redirect to={kvmURLs.resources({ id })} />;
   }
 
   return (

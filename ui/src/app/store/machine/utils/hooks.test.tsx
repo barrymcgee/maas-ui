@@ -17,8 +17,8 @@ import {
 } from "./hooks";
 
 import type { Machine } from "app/store/machine/types";
-import { NetworkInterfaceTypes } from "app/store/machine/types";
 import type { RootState } from "app/store/root/types";
+import { NetworkInterfaceTypes } from "app/store/types/enum";
 import { NodeStatus, NodeStatusCode } from "app/store/types/node";
 import {
   architecturesState as architecturesStateFactory,
@@ -38,11 +38,10 @@ import {
 
 const mockStore = configureStore();
 
-const generateWrapper = (store: MockStoreEnhanced<unknown>) => ({
-  children,
-}: {
-  children: ReactNode;
-}) => <Provider store={store}>{children}</Provider>;
+const generateWrapper =
+  (store: MockStoreEnhanced<unknown>) =>
+  ({ children }: { children: ReactNode }) =>
+    <Provider store={store}>{children}</Provider>;
 
 describe("machine hook utils", () => {
   let state: RootState;

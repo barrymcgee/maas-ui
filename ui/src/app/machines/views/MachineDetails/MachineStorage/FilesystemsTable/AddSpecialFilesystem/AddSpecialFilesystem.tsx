@@ -3,14 +3,13 @@ import { useDispatch, useSelector } from "react-redux";
 import * as Yup from "yup";
 
 import FormCard from "app/base/components/FormCard";
-import FormCardButtons from "app/base/components/FormCardButtons";
 import FormikField from "app/base/components/FormikField";
 import FormikForm from "app/base/components/FormikForm";
 import { useMachineDetailsForm } from "app/machines/hooks";
 import { actions as machineActions } from "app/store/machine";
 import machineSelectors from "app/store/machine/selectors";
 import type { Machine } from "app/store/machine/types";
-import { usesStorage } from "app/store/machine/utils";
+import { isMachineDetails, usesStorage } from "app/store/machine/utils";
 import type { RootState } from "app/store/root/types";
 
 const AddSpecialFilesystemSchema = Yup.object().shape({
@@ -20,6 +19,12 @@ const AddSpecialFilesystemSchema = Yup.object().shape({
     .matches(/^\//, "Mount point must start with /")
     .required("Mount point is required"),
 });
+
+type AddSpecialFilesystemValues = {
+  fstype: string;
+  mountOptions: string;
+  mountPoint: string;
+};
 
 type Props = {
   closeForm: () => void;
@@ -41,7 +46,7 @@ export const AddSpecialFilesystem = ({
     () => closeForm()
   );
 
-  if (machine && "supported_filesystems" in machine) {
+  if (isMachineDetails(machine)) {
     const fsOptions = machine.supported_filesystems
       .filter((fs) => !usesStorage(fs.key))
       .map((fs) => ({
@@ -51,8 +56,7 @@ export const AddSpecialFilesystem = ({
 
     return (
       <FormCard data-test="confirmation-form" sidebar={false}>
-        <FormikForm
-          buttons={FormCardButtons}
+        <FormikForm<AddSpecialFilesystemValues>
           cleanup={machineActions.cleanup}
           errors={errors}
           initialValues={{

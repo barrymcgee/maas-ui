@@ -12,20 +12,22 @@ import {
 import AddAliasOrVlanFields from "./AddAliasOrVlanFields";
 import type { AddAliasOrVlanValues } from "./types";
 
-import FormCardButtons from "app/base/components/FormCardButtons";
 import FormikForm from "app/base/components/FormikForm";
 import { useScrollOnRender } from "app/base/hooks";
 import { useMachineDetailsForm } from "app/machines/hooks";
 import { actions as machineActions } from "app/store/machine";
 import machineSelectors from "app/store/machine/selectors";
 import type {
-  Machine,
+  CreateVlanParams,
+  LinkSubnetParams,
   MachineDetails,
-  NetworkInterface,
 } from "app/store/machine/types";
-import { NetworkInterfaceTypes } from "app/store/machine/types";
+import { isMachineDetails } from "app/store/machine/utils";
 import type { RootState } from "app/store/root/types";
+import { NetworkInterfaceTypes } from "app/store/types/enum";
+import type { NetworkInterface } from "app/store/types/node";
 import vlanSelectors from "app/store/vlan/selectors";
+import { preparePayload } from "app/utils";
 
 type Props = {
   close: () => void;
@@ -71,13 +73,12 @@ const AddAliasOrVlan = ({
   const onRenderRef = useScrollOnRender<HTMLDivElement>();
   const canAddAnother = isAlias || (!isAlias && unusedVLANs.length > 1);
 
-  if (!nic || !machine || !("interfaces" in machine)) {
+  if (!nic || !isMachineDetails(machine)) {
     return <Spinner text="Loading..." />;
   }
   return (
     <div ref={onRenderRef}>
-      <FormikForm
-        buttons={FormCardButtons}
+      <FormikForm<AddAliasOrVlanValues>
         cleanup={cleanup}
         errors={errors}
         initialValues={{
@@ -90,46 +91,36 @@ const AddAliasOrVlan = ({
           label: `Add ${interfaceType} form`,
         }}
         onCancel={close}
-        onSubmit={(values: AddAliasOrVlanValues) => {
+        onSubmit={(values) => {
           // Clear the errors from the previous submission.
           dispatch(cleanup());
-          type Payload = AddAliasOrVlanValues & {
-            system_id: Machine["system_id"];
-          };
-          const payload: Payload = {
-            ...values,
-            system_id: systemId,
-          };
-          // Remove all empty values.
-          Object.entries(payload).forEach(([key, value]) => {
-            if (value === "") {
-              delete payload[key as keyof Payload];
-            }
-          });
           if (isAlias) {
             // Create an alias.
-            dispatch(
-              machineActions.linkSubnet({
-                ...payload,
-                interface_id: nic.id,
-              })
-            );
+            const params = preparePayload({
+              ...values,
+              interface_id: nic.id,
+              system_id: systemId,
+            }) as LinkSubnetParams;
+            if (params.mode !== undefined) {
+              dispatch(machineActions.linkSubnet(params));
+            }
           } else {
             // Create a VLAN.
-            dispatch(
-              machineActions.createVlan({
-                ...payload,
-                parent: nic.id,
-              })
-            );
+            const params = preparePayload({
+              ...values,
+              parent: nic.id,
+              system_id: systemId,
+            }) as CreateVlanParams;
+            dispatch(machineActions.createVlan(params));
           }
         }}
         resetOnSave
         saved={saved}
         saving={saving}
-        secondarySubmit={() => {
+        secondarySubmit={(_, { submitForm }) => {
           // Flag that the form was submitted by the secondary action.
           setSecondarySubmit(true);
+          submitForm();
         }}
         secondarySubmitDisabled={!canAddAnother}
         secondarySubmitLabel="Save and add another"

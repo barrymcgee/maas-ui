@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { notificationTypes, Spinner, Strip } from "@canonical/react-components";
+import pluralize from "pluralize";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router";
 import * as Yup from "yup";
@@ -10,9 +11,8 @@ import InterfacesTable from "./InterfacesTable";
 import StorageTable from "./StorageTable";
 
 import ActionForm from "app/base/components/ActionForm";
-import type { RouteParams } from "app/base/types";
+import type { ClearSelectedAction, RouteParams } from "app/base/types";
 import { RANGE_REGEX } from "app/base/validation";
-import type { SetSelectedAction } from "app/kvm/views/KVMDetails";
 import { actions as domainActions } from "app/store/domain";
 import domainSelectors from "app/store/domain/selectors";
 import { actions as fabricActions } from "app/store/fabric";
@@ -23,7 +23,7 @@ import { actions as messageActions } from "app/store/message";
 import { actions as podActions } from "app/store/pod";
 import podSelectors from "app/store/pod/selectors";
 import type { Pod } from "app/store/pod/types";
-import { getCoreIndices } from "app/store/pod/utils";
+import { getCoreIndices, resourceWithOverCommit } from "app/store/pod/utils";
 import { actions as resourcePoolActions } from "app/store/resourcepool";
 import resourcePoolSelectors from "app/store/resourcepool/selectors";
 import type { RootState } from "app/store/root/types";
@@ -161,10 +161,10 @@ export const getDefaultPoolLocation = (pod: Pod): string => {
 };
 
 type Props = {
-  setSelectedAction: SetSelectedAction;
+  clearSelectedAction: ClearSelectedAction;
 };
 
-const ComposeForm = ({ setSelectedAction }: Props): JSX.Element => {
+const ComposeForm = ({ clearSelectedAction }: Props): JSX.Element => {
   const dispatch = useDispatch();
   const { id } = useParams<RouteParams>();
   const pod = useSelector((state: RootState) =>
@@ -214,15 +214,30 @@ const ComposeForm = ({ setSelectedAction }: Props): JSX.Element => {
 
   if (!!pod && "boot_vlans" in pod && loaded) {
     const powerType = powerTypes.find((type) => type.name === pod.type);
+    const { cpu_over_commit_ratio, memory_over_commit_ratio, resources } = pod;
+    const { cores, memory } = resources;
+    const { free: availableCores } = resourceWithOverCommit(
+      cores,
+      cpu_over_commit_ratio
+    );
+    const { free: availableGeneral } = resourceWithOverCommit(
+      memory.general,
+      memory_over_commit_ratio
+    );
+    const availableHugepages = memory.hugepages.free;
     const available = {
-      cores: pod.total.cores * pod.cpu_over_commit_ratio - pod.used.cores,
-      hugepages: pod.resources.memory.hugepages.free,
-      memory: pod.total.memory * pod.memory_over_commit_ratio - pod.used.memory, // MiB
+      cores: availableCores,
+      hugepages: availableHugepages,
+      memory: formatBytes(availableGeneral + availableHugepages, "B", {
+        binary: true,
+        convertTo: "MiB",
+      }).value,
       pinnedCores: getCoreIndices(pod, "free"),
       storage:
         pod.storage_pools?.reduce((available, pool) => {
           available[pool.name] = formatBytes(pool.available, "B", {
             convertTo: "GB",
+            roundFunc: "floor",
           }).value;
           return available;
         }, {}) || [],
@@ -243,7 +258,12 @@ const ComposeForm = ({ setSelectedAction }: Props): JSX.Element => {
       cores: Yup.number()
         .positive("Cores must be a positive number.")
         .min(1, "Cores must be a positive number.")
-        .max(available.cores, `Only ${available.cores} cores available.`),
+        .max(
+          available.cores,
+          available.cores <= 0
+            ? "No cores available."
+            : `Only ${pluralize("core", available.cores, true)} available.`
+        ),
       disks: Yup.array()
         .of(
           Yup.object()
@@ -323,11 +343,23 @@ const ComposeForm = ({ setSelectedAction }: Props): JSX.Element => {
       memory: Yup.number()
         .positive("RAM must be a positive number.")
         .min(1024, "At least 1024 MiB is required.")
-        .max(available.memory, `Only ${available.memory} MiB available.`),
+        .max(
+          available.memory,
+          available.memory <= 0
+            ? "No memory available."
+            : `Only ${available.memory}MiB available.`
+        ),
       pinnedCores: Yup.string()
         .matches(RANGE_REGEX, 'Cores string must follow format e.g "1,2,4-12"')
-        .test("pinnedCores", "Check pinned cores string", function test() {
-          const { cores, pinnedCores } = this.parent;
+        .test("pinnedCores", "Check pinned cores string", (_, context) => {
+          const { cores, pinnedCores } = context.parent;
+
+          if (available.cores === 0) {
+            return context.createError({
+              message: "There are no cores available to pin.",
+              path: "pinnedCores",
+            });
+          }
           // Don't proceed with pinned core validation if empty (default) values
           // are used or if cores are not being pinned.
           if ((!cores && !pinnedCores) || Boolean(cores)) {
@@ -356,7 +388,7 @@ const ComposeForm = ({ setSelectedAction }: Props): JSX.Element => {
             errorMessage = "Some or all of the selected cores are unavailable.";
           }
           if (errorMessage) {
-            return this.createError({
+            return context.createError({
               message: errorMessage,
               path: "pinnedCores",
             });
@@ -368,22 +400,23 @@ const ComposeForm = ({ setSelectedAction }: Props): JSX.Element => {
     });
 
     return (
-      <ActionForm
+      <ActionForm<ComposeFormValues>
         actionName="compose"
         allowUnchanged
         cleanup={cleanup}
-        clearSelectedAction={() => setSelectedAction(null)}
+        clearSelectedAction={clearSelectedAction}
         errors={errors}
+        initialTouched={{ cores: true, memory: true, pinnedCores: true }}
         initialValues={{
           architecture: pod.architectures[0] || "",
           bootDisk: 1,
-          cores: "",
+          cores: defaults.cores,
           disks: defaultPoolLocation ? [{ ...defaults.disk, id: 1 }] : [],
           domain: `${domains[0]?.id}` || "",
           hostname: "",
           hugepagesBacked: false,
           interfaces: [],
-          memory: "",
+          memory: defaults.memory,
           pinnedCores: "",
           pool: `${pools[0]?.id}` || "",
           zone: `${zones[0]?.id}` || "",

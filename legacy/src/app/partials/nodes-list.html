@@ -336,7 +336,7 @@
                   data-ng-class="tabs[tab].actionOption.name === 'delete' ? 'p-button--negative' : 'p-button--positive'"
                   data-ng-click="actionGo(tab)"
                   data-ng-hide="hasActionsFailed(tab)"
-                  data-ng-disabled="tabs[tab].actionOption.name === 'tag' && tags.length <= 0"
+                  data-ng-disabled="actionSubmitDisabled(tab)"
                 >
                   <span data-ng-if="tabs[tab].actionOption.name === 'set-zone'"
                     >Set zone for {$ tabs[tab].selectedItems.length $} {$
@@ -557,7 +557,9 @@
       <form class="p-form p-form--stacked row">
         <div class="col-6 u-sv3">
           <div class="p-form__group row">
-            <label for="device-name" class="p-form__label col-2">Name</label>
+            <label for="device-name" class="p-form__label col-2 is-required">
+              Name
+            </label>
             <div class="p-form__control col-4">
               <div
                 class="p-form-validation"
@@ -574,7 +576,9 @@
             </div>
           </div>
           <div class="p-form__group row">
-            <label for="domain3" class="p-form__label col-2">Domain</label>
+            <label for="domain3" class="p-form__label col-2 is-required">
+              Domain
+            </label>
             <div class="p-form__control col-4">
               <select
                 name="domain"
@@ -775,6 +779,7 @@
             class="p-button--positive"
             data-ng-class="{ 'p-button--positive': tabs.controllers.actionOption.name !== 'delete', 'p-button--negative': tabs.controllers.actionOption.name === 'delete' }"
             data-ng-click="actionGo('controllers')"
+            data-ng-disabled="actionSubmitDisabled('controllers')"
           >
             <span data-ng-if="tabs.controllers.actionOption.name === 'set-zone'"
               >Set zone for {$ tabs.controllers.selectedItems.length $}
@@ -1276,14 +1281,17 @@ sudo maas init rack --maas-url {$ tabs.controllers.registerUrl $} --secret {$ ta
             >
               Type
             </th>
+            <th class="p-table__cell" role="columnheader"># of VLANs</th>
             <th
-              class="p-table__cell"
+              class="p-double-row"
               role="columnheader"
               data-ng-click="sortTable('node_type_display', 'controllers')"
               data-ng-class="{'is-sorted': tabs.controllers.predicate === 'version', 'sort-asc': tabs.controllers.reverse === false, 'sort-desc': tabs.controllers.reverse === true}"
             >
-              Version
+              <div>Version</div>
+              <div class="u-text--muted">Channel</div>
             </th>
+            <th class="p-table__cell" role="columnheader">Available upgrade</th>
             <th class="p-double-row">
               <div class="u-truncate">Last Image Sync</div>
               <div class="u-text--muted u-truncate">Images Status</div>
@@ -1323,12 +1331,26 @@ sudo maas init rack --maas-url {$ tabs.controllers.registerUrl $} --secret {$ ta
                 >
               </a>
             </td>
-            <td
-              class="p-table__cell u-align--center"
-              data-maas-controller-status="controller"
-              data-maas-services="services"
-              aria-label="Status"
-            ></td>
+            <td class="p-table__cell u-align--center">
+              <span
+                data-maas-controller-status="controller"
+                data-maas-services="services"
+                data-ng-if="!getVersions(controller).issue"
+                aria-label="Status"
+              ></span>
+              <span data-ng-if="getVersions(controller).issue">
+                <i class="p-icon--error"></i
+                ><span class="p-tooltip--top-center status-icon--negative-space"
+                  ><i class="p-icon--information u-no-margin--right"></i
+                  ><span class="p-tooltip__message" role="tooltip"
+                    >{$ getVersions(controller).issue $}&#xa;<a
+                      href="https://discourse.maas.io/t/4555"
+                      >More info</a
+                    ></span
+                  >
+                </span>
+              </span>
+            </td>
             <td
               class="p-table__cell"
               aria-label="Type"
@@ -1336,25 +1358,75 @@ sudo maas init rack --maas-url {$ tabs.controllers.registerUrl $} --secret {$ ta
             >
               <div class="u-truncate">{$ controller.node_type_display $}</div>
             </td>
-            <td class="p-table__cell" aria-label="Version">
-              <div
-                data-ng-show="controller.versions.current.version"
-                title="{$ controller.versions.current.version $}"
-              >
-                {$ controller.versions.current.version $}
-              </div>
-              <div
-                data-ng-show="!controller.versions.current.version"
-                class="u-no-margin--top"
-                title="Unknown"
-              >
-                Unknown
-                <span class="p-tooltip--top-center">
-                  <i class="p-icon--information"></i>
-                  <span class="p-tooltip__message" role="tooltip"
-                    >Less than 2.3.0</span
+            <td class="p-double-row" aria-label="# of VLANs">
+              <div class="p-double-row__rows-container">
+                <div class="p-double-row__main-row">
+                  <a
+                    data-ng-if="getVlanCount(controller) ||
+                  getVlanCount(controller) === 0"
+                    href="{$ legacyURLBase $}/{$ controller.link_type $}/{$ controller.system_id $}?area=vlans"
                   >
-                </span>
+                    {$ getVlanCount(controller) $}
+                  </a>
+                </div>
+                <div class="p-double-row__muted-row u-truncate">
+                  {$ getHaVlans(controller) $}
+                </div>
+              </div>
+            </td>
+            <td class="p-double-row" aria-label="Version">
+              <div class="p-double-row__rows-container">
+                <div class="p-double-row__main-row">
+                  <div
+                    class="u-truncate"
+                    data-ng-if="getVersions(controller).current"
+                    title="{$ getVersions(controller).current $}"
+                  >
+                    {$ getVersions(controller).current $}
+                  </div>
+                  <div
+                    data-ng-if="!getVersions(controller).current"
+                    class="u-no-margin--top"
+                    title="Unknown"
+                  >
+                    Unknown
+                    <span class="p-tooltip--top-center">
+                      <i class="p-icon--information"></i>
+                      <span class="p-tooltip__message" role="tooltip"
+                        >Less than 2.3.0</span
+                      >
+                    </span>
+                  </div>
+                </div>
+                <div class="p-double-row__muted-row">
+                  <div
+                    data-ng-if="getVersions(controller).origin"
+                    title="{$ getVersions(controller).origin $}"
+                  >
+                    {$ getVersions(controller).isDeb ? "Deb" :
+                    getVersions(controller).origin $}
+                  </div>
+                  &nbsp;
+                  <div
+                    class="p-tooltip--top-left"
+                    data-ng-if="getVersions(controller).cohortTooltip || getVersions(controller).isDeb"
+                  >
+                    <i class="p-icon--information"></i>
+                    <span class="p-tooltip__message" role="tooltip"
+                      >{$ getVersions(controller).isDeb ?
+                      getVersions(controller).origin :
+                      getVersions(controller).cohortTooltip $}</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td class="p-table__cell" aria-label="Available upgrade">
+              <div
+                data-ng-if="getVersions(controller).upgrade"
+                title="{$ getVersions(controller).upgrade $}"
+              >
+                {$ getVersions(controller).upgrade $}
               </div>
             </td>
             <td

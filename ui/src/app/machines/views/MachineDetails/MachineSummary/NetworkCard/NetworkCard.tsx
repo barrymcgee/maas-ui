@@ -4,17 +4,19 @@ import { Card, Spinner } from "@canonical/react-components";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 
-import type { SetSelectedAction } from "../../types";
 import TestResults from "../TestResults";
 
 import NetworkCardTable from "./NetworkCardTable";
 
 import { HardwareType } from "app/base/enum";
+import type { MachineSetSelectedAction } from "app/machines/views/types";
 import { actions as fabricActions } from "app/store/fabric";
 import fabricSelectors from "app/store/fabric/selectors";
 import machineSelectors from "app/store/machine/selectors";
-import type { Machine, NetworkInterface } from "app/store/machine/types";
+import type { Machine } from "app/store/machine/types";
+import { isMachineDetails } from "app/store/machine/utils";
 import type { RootState } from "app/store/root/types";
+import type { NetworkInterface } from "app/store/types/node";
 import { actions as vlanActions } from "app/store/vlan";
 import vlanSelectors from "app/store/vlan/selectors";
 
@@ -27,7 +29,7 @@ type InterfaceGroup = {
 
 type Props = {
   id: Machine["system_id"];
-  setSelectedAction: SetSelectedAction;
+  setSelectedAction: MachineSetSelectedAction;
 };
 
 /**
@@ -118,7 +120,7 @@ const NetworkCard = ({ id, setSelectedAction }: Props): JSX.Element => {
   // Confirm that the full machine details have been fetched. This also allows
   // TypeScript know we're using the right union type (otherwise it will
   // complain that interfaces doesn't exist on the base machine type).
-  if (machine && "interfaces" in machine && fabricsLoaded && vlansLoaded) {
+  if (isMachineDetails(machine) && fabricsLoaded && vlansLoaded) {
     const groupedInterfaces = groupInterfaces(machine.interfaces);
     content = (
       <>

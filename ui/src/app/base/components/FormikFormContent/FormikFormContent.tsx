@@ -1,117 +1,49 @@
-import { useEffect } from "react";
-import type { ComponentType, ReactNode } from "react";
+import { useEffect, useRef } from "react";
+import type { ReactNode } from "react";
 
 import { Form, Notification } from "@canonical/react-components";
-import type { Props as ButtonProps } from "@canonical/react-components/dist/components/Button/Button";
-import type { FormikContextType } from "formik";
 import { useFormikContext } from "formik";
+import { useDispatch } from "react-redux";
+import { Redirect } from "react-router";
 
+import type { FormikFormButtonsProps } from "app/base/components/FormikFormButtons";
 import FormikFormButtons from "app/base/components/FormikFormButtons";
-import { useFormikErrors, useFormikFormDisabled } from "app/base/hooks";
+import {
+  useCycled,
+  useFormikErrors,
+  useFormikFormDisabled,
+  useSendAnalyticsWhen,
+} from "app/base/hooks";
+import type { APIError } from "app/base/types";
 
-export type FormErrors =
-  | string
-  | {
-      __all__: string[];
-      [x: string]: unknown;
-    };
-
-export type ButtonComponentProps = {
-  bordered?: boolean;
-  cancelDisabled?: boolean;
-  helpLabel?: string;
-  helpLink?: string;
-  loading?: boolean;
-  onCancel?: () => void;
-  loadingLabel?: string;
-  secondarySubmit?: () => void;
-  secondarySubmitDisabled?: boolean;
-  secondarySubmitLabel?: string;
-  secondarySubmitTooltip?: string | null;
-  submitAppearance?: ButtonProps["appearance"];
-  submitDisabled?: boolean;
-  submitLabel?: string;
-  success?: boolean;
-};
-
-export type Props<V, E = FormErrors> = {
+export type Props<V> = {
   allowAllEmpty?: boolean;
   allowUnchanged?: boolean;
-  buttons?: ComponentType<ButtonComponentProps>;
-  buttonsBordered?: boolean;
-  buttonsHelpLabel?: string;
-  buttonsHelpLink?: string;
   children?: ReactNode;
+  className?: string;
+  cleanup?: () => void;
   editable?: boolean;
-  errors?: E;
-  initialValues: V;
+  errors?: APIError;
   inline?: boolean;
   loading?: boolean;
-  onCancel?: (formikContext: FormikContextType<V>) => void;
+  onSaveAnalytics?: {
+    action?: string;
+    category?: string;
+    label?: string;
+  };
+  onSuccess?: (values: V) => void;
   onValuesChanged?: (values: V) => void;
   resetOnSave?: boolean;
   saved?: boolean;
+  savedRedirect?: string;
   saving?: boolean;
-  savingLabel?: string;
-  secondarySubmit?: () => void;
-  secondarySubmitDisabled?: boolean;
-  secondarySubmitLabel?: string;
-  secondarySubmitTooltip?: string | null;
-  submitAppearance?: string;
   submitDisabled?: boolean;
-  submitLabel?: string;
-};
+} & FormikFormButtonsProps<V>;
 
-const FormikFormContent = <V, E = FormErrors>({
-  allowAllEmpty,
-  allowUnchanged,
-  buttons: Buttons = FormikFormButtons,
-  buttonsBordered,
-  buttonsHelpLabel,
-  buttonsHelpLink,
-  children,
-  editable,
-  errors,
-  inline,
-  initialValues,
-  loading,
-  onCancel,
-  onValuesChanged,
-  resetOnSave,
-  saving,
-  savingLabel,
-  saved,
-  secondarySubmit,
-  secondarySubmitDisabled,
-  secondarySubmitLabel,
-  secondarySubmitTooltip,
-  submitAppearance,
-  submitDisabled = false,
-  submitLabel = "Save",
-}: Props<V, E>): JSX.Element => {
-  const formikContext = useFormikContext<V>();
-  const { handleSubmit, resetForm, submitForm, values } = formikContext;
-  const formDisabled = useFormikFormDisabled<V>({
-    allowAllEmpty,
-    allowUnchanged,
-  });
-
-  useFormikErrors(errors);
-
-  useEffect(() => {
-    onValuesChanged && onValuesChanged(values);
-  }, [values, onValuesChanged]);
-
-  useEffect(() => {
-    if (resetOnSave && saved) {
-      resetForm({ values: initialValues });
-    }
-  }, [initialValues, resetForm, resetOnSave, saved]);
-
-  let nonFieldError: string;
+const generateNonFieldError = <V,>(values: V, errors?: APIError) => {
   if (errors) {
     if (typeof errors === "string") {
-      nonFieldError = errors;
+      return errors;
     } else if (typeof errors === "object") {
       let otherErrors: string[] = [];
       // Display any errors for keys that don't match form fields.
@@ -125,12 +57,98 @@ const FormikFormContent = <V, E = FormErrors>({
           }
         }
       });
-      nonFieldError = otherErrors.join(", ");
+      return otherErrors.join(", ");
     }
+  }
+  return null;
+};
+
+const FormikFormContent = <V,>({
+  allowAllEmpty,
+  allowUnchanged,
+  children,
+  className,
+  cleanup,
+  editable = true,
+  errors,
+  inline,
+  loading,
+  onSaveAnalytics = {},
+  onSuccess,
+  onValuesChanged,
+  resetOnSave,
+  saved = false,
+  savedRedirect,
+  saving,
+  submitDisabled,
+  ...buttonsProps
+}: Props<V>): JSX.Element => {
+  const dispatch = useDispatch();
+  const onSuccessCalled = useRef(false);
+  const { handleSubmit, initialValues, resetForm, values } =
+    useFormikContext<V>();
+  const formDisabled = useFormikFormDisabled<V>({
+    allowAllEmpty,
+    allowUnchanged,
+  });
+  const [hasSaved, resetHasSaved] = useCycled(saved);
+  const hasErrors = !!errors;
+
+  // Run onValuesChanged function whenever formik values change.
+  useEffect(() => {
+    onValuesChanged && onValuesChanged(values);
+  }, [values, onValuesChanged]);
+
+  // Reset the form to initialValues once saved. This is used to explicitly
+  // disable a form that has just been saved.
+  useEffect(() => {
+    if (resetOnSave && hasSaved) {
+      resetForm({ values: initialValues });
+      // Reset the hasSaved state so that it can start checking for whether it
+      // has cycled again.
+      resetHasSaved();
+      // Reset the onSuccess called flag so that it will get called again the
+      // next time the form is saved.
+      onSuccessCalled.current = false;
+    }
+  }, [initialValues, resetForm, resetHasSaved, resetOnSave, hasSaved]);
+
+  useEffect(() => {
+    if (!hasErrors && hasSaved && !onSuccessCalled.current) {
+      onSuccess && onSuccess(values);
+      // Set the onSuccess has having been called so that it doesn't get called
+      // more than once. A ref is used as we don't need to respond to the
+      // changes of this state.
+      onSuccessCalled.current = true;
+    }
+  }, [onSuccess, hasErrors, hasSaved, values]);
+
+  // Send an analytics event when form is saved.
+  useSendAnalyticsWhen(
+    saved,
+    onSaveAnalytics.category,
+    onSaveAnalytics.action,
+    onSaveAnalytics.label
+  );
+
+  // We use both formik validation errors (i.e. those associated with a given
+  // form field) and errors returned from the server.
+  useFormikErrors(errors);
+  const nonFieldError = generateNonFieldError<V>(values, errors);
+
+  // Run cleanup function on component unmount.
+  useEffect(() => {
+    return () => {
+      cleanup && dispatch(cleanup());
+    };
+  }, [cleanup, dispatch]);
+
+  if (savedRedirect && saved) {
+    return <Redirect to={savedRedirect} />;
   }
 
   return (
-    <Form inline={inline} onSubmit={handleSubmit}>
+    <Form className={className} inline={inline} onSubmit={handleSubmit}>
       {!!nonFieldError && (
         <Notification type="negative" status="Error:">
           {nonFieldError}
@@ -138,29 +156,13 @@ const FormikFormContent = <V, E = FormErrors>({
       )}
       {children}
       {editable && (
-        <Buttons
-          bordered={buttonsBordered}
+        <FormikFormButtons
+          {...buttonsProps}
           cancelDisabled={saving}
-          helpLabel={buttonsHelpLabel}
-          helpLink={buttonsHelpLink}
-          loading={saving}
-          onCancel={onCancel ? () => onCancel(formikContext) : undefined}
-          loadingLabel={savingLabel}
-          secondarySubmit={
-            secondarySubmit
-              ? () => {
-                  secondarySubmit();
-                  submitForm();
-                }
-              : undefined
-          }
-          secondarySubmitDisabled={secondarySubmitDisabled}
-          secondarySubmitLabel={secondarySubmitLabel}
-          secondarySubmitTooltip={secondarySubmitTooltip}
-          submitAppearance={submitAppearance}
+          inline={inline}
+          saved={saved}
+          saving={saving}
           submitDisabled={loading || saving || formDisabled || submitDisabled}
-          submitLabel={submitLabel}
-          success={saved}
         />
       )}
     </Form>

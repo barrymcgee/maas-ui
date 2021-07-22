@@ -1,18 +1,21 @@
-import type { SliceCaseReducers } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 
-import type { GenericSlice } from "../utils";
-import { generateSlice } from "../utils";
+import { TagMeta } from "./types";
+import type { TagState } from "./types";
 
-import type { Tag, TagState } from "./types";
+import {
+  generateCommonReducers,
+  genericInitialState,
+} from "app/store/utils/slice";
 
-type TagReducers = SliceCaseReducers<TagState>;
-
-export type TagSlice = GenericSlice<TagState, Tag, TagReducers>;
-
-const tagSlice = generateSlice<Tag, TagState["errors"], TagReducers, "id">({
-  indexKey: "id",
-  name: "tag",
-}) as TagSlice;
+const tagSlice = createSlice({
+  name: TagMeta.MODEL,
+  initialState: genericInitialState as TagState,
+  reducers: generateCommonReducers<TagState, TagMeta.PK, void, void>(
+    TagMeta.MODEL,
+    TagMeta.PK
+  ),
+});
 
 export const { actions } = tagSlice;
 

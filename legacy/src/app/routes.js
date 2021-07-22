@@ -5,13 +5,7 @@ import {
 } from "@maas-ui/maas-ui-shared";
 
 import layoutTmpl from "./partials/layout.html";
-import dashboardTmpl from "./partials/dashboard.html";
-import domainDetailsTmpl from "./partials/domain-details.html";
-import domainsListTmpl from "./partials/domains-list.html";
 import fabricDetailsTmpl from "./partials/fabric-details.html";
-import imagesTmpl from "./partials/images.html";
-import introTmpl from "./partials/intro.html";
-import introUserTmpl from "./partials/intro-user.html";
 import networksListTmpl from "./partials/networks-list.html";
 import nodesListTmpl from "./partials/nodes-list.html";
 import nodeDetailsTmpl from "./partials/node-details.html";
@@ -20,8 +14,6 @@ import nodeResultTmpl from "./partials/node-result.html";
 import spaceDetailsTmpl from "./partials/space-details.html";
 import subnetDetailsTmpl from "./partials/subnet-details.html";
 import vlanDetailsTmpl from "./partials/vlan-details.html";
-import zoneDetailsTmpl from "./partials/zone-details.html";
-import zonesListTmpl from "./partials/zones-list.html";
 
 /* @ngInject */
 const configureRoutes = ($stateProvider, $urlRouterProvider) => {
@@ -33,13 +25,15 @@ const configureRoutes = ($stateProvider, $urlRouterProvider) => {
     })
     .state("master.intro", {
       url: generateLegacyURL("/intro"),
-      template: introTmpl,
-      controller: "IntroController",
+      redirectTo: () => {
+        navigateToNew("/intro");
+      },
     })
     .state("master.introUser", {
       url: generateLegacyURL("/intro/user"),
-      template: introUserTmpl,
-      controller: "IntroUserController",
+      redirectTo: () => {
+        navigateToNew("/intro/user");
+      },
     })
     .state("master.machineResultDetails", {
       url: generateLegacyURL("/machine/:system_id/:result_type/:id"),
@@ -152,18 +146,35 @@ const configureRoutes = ($stateProvider, $urlRouterProvider) => {
     })
     .state("master.images", {
       url: generateLegacyURL("/images"),
-      template: imagesTmpl,
-      controller: "ImagesController",
+      redirectTo: () => {
+        navigateToNew("/images");
+      },
     })
     .state("master.domains", {
       url: generateLegacyURL("/domains"),
-      template: domainsListTmpl,
-      controller: "DomainsListController",
+      redirectTo: () => {
+        navigateToNew("/domains");
+      },
     })
     .state("master.domainDetails", {
-      url: generateLegacyURL("/domain/:domain_id"),
-      template: domainDetailsTmpl,
-      controller: "DomainDetailsController",
+      url: generateLegacyURL("/domain/:id"),
+      redirectTo: (transition) => {
+        const params = transition.params();
+        navigateToNew(`/domain/${params.id}`);
+      },
+    })
+    .state("master.zones", {
+      url: generateLegacyURL("/zones"),
+      redirectTo: () => {
+        navigateToNew("/zones");
+      },
+    })
+    .state("master.zoneDetails", {
+      url: generateLegacyURL("/zone/:id"),
+      redirectTo: (transition) => {
+        const params = transition.params();
+        navigateToNew(`/zone/${params.id}`);
+      },
     })
     .state("master.spaceDetails", {
       url: generateLegacyURL("/space/:space_id"),
@@ -196,17 +207,6 @@ const configureRoutes = ($stateProvider, $urlRouterProvider) => {
       controller: "VLANDetailsController",
       controllerAs: "vlanDetails",
     })
-    .state("master.zoneDetails", {
-      url: generateLegacyURL("/zone/:zone_id"),
-      template: zoneDetailsTmpl,
-      controller: "ZoneDetailsController",
-    })
-    .state("master.zones", {
-      url: generateLegacyURL("/zones"),
-      template: zonesListTmpl,
-      controller: "ZonesListController",
-      reloadOnSearch: false,
-    })
     .state("master.pools", {
       url: generateLegacyURL("/pools"),
       template: nodesListTmpl,
@@ -214,8 +214,9 @@ const configureRoutes = ($stateProvider, $urlRouterProvider) => {
     })
     .state("master.dashboard", {
       url: generateLegacyURL("/dashboard"),
-      template: dashboardTmpl,
-      controller: "DashboardController",
+      redirectTo: () => {
+        navigateToNew("/dashboard");
+      },
     });
 
   $urlRouterProvider.otherwise(($injector, $location) => {

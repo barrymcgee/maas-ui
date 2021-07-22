@@ -1,0 +1,46 @@
+import TableConfirm from "app/base/components/TableConfirm";
+import type { Props as TableConfirmProps } from "app/base/components/TableConfirm/TableConfirm";
+
+type Props = {
+  deleted: TableConfirmProps["finished"];
+  deleting: TableConfirmProps["inProgress"];
+  message?: string;
+  modelName?: string;
+  modelType?: string;
+  onClose: TableConfirmProps["onClose"];
+  onConfirm: TableConfirmProps["onConfirm"];
+  sidebar?: TableConfirmProps["sidebar"];
+} & Pick<
+  TableConfirmProps,
+  "errors" | "onClose" | "onConfirm" | "onSuccess" | "sidebar"
+>;
+
+const TableDeleteConfirm = ({
+  deleted,
+  deleting,
+  message,
+  modelName,
+  modelType,
+  ...props
+}: Props): JSX.Element => {
+  return (
+    <TableConfirm
+      confirmAppearance="negative"
+      confirmLabel="Delete"
+      finished={deleted}
+      inProgress={deleting}
+      message={
+        <>
+          {message ||
+            `Are you sure you want to delete ${modelType} "${modelName}"?`}{" "}
+          <span className="u-text--light">
+            This action is permanent and can not be undone.
+          </span>
+        </>
+      }
+      {...props}
+    />
+  );
+};
+
+export default TableDeleteConfirm;

@@ -187,7 +187,11 @@ describe("ScriptsList", () => {
     // Click on the delete button:
     wrapper.find("TableRow").at(1).find("Button").at(1).simulate("click");
     // Click on the delete confirm button
-    wrapper.find("TableRow").at(1).find("Button").at(3).simulate("click");
+    wrapper
+      .find("TableRow")
+      .at(1)
+      .find("ActionButton[data-test='action-confirm']")
+      .simulate("click");
     expect(
       store.getActions().find((action) => action.type === "script/delete")
     ).toEqual({
@@ -244,5 +248,55 @@ describe("ScriptsList", () => {
     expect(wrapper.find("TableRow").find("ScriptDetails").exists()).toEqual(
       true
     );
+  });
+
+  it("correctly formats script creation date", () => {
+    const state = rootStateFactory({
+      script: scriptStateFactory({
+        loaded: true,
+        items: [
+          scriptFactory({
+            created: "Thu, 31 Dec. 2020 22:59:00",
+            script_type: ScriptType.TESTING,
+          }),
+        ],
+      }),
+    });
+    const store = mockStore(state);
+
+    const wrapper = mount(
+      <Provider store={store}>
+        <MemoryRouter initialEntries={[{ pathname: "/" }]}>
+          <ScriptsList type="testing" />
+        </MemoryRouter>
+      </Provider>
+    );
+    expect(wrapper.find("[data-test='upload-date']").text()).toBe(
+      "2020-12-31 22:59"
+    );
+  });
+
+  it("formats script creation date as 'Never' if date cannot be parsed", () => {
+    const state = rootStateFactory({
+      script: scriptStateFactory({
+        loaded: true,
+        items: [
+          scriptFactory({
+            created: "",
+            script_type: ScriptType.TESTING,
+          }),
+        ],
+      }),
+    });
+    const store = mockStore(state);
+
+    const wrapper = mount(
+      <Provider store={store}>
+        <MemoryRouter initialEntries={[{ pathname: "/" }]}>
+          <ScriptsList type="testing" />
+        </MemoryRouter>
+      </Provider>
+    );
+    expect(wrapper.find("[data-test='upload-date']").text()).toBe("Never");
   });
 });

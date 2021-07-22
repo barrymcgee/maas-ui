@@ -4,10 +4,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { useHistory } from "react-router-dom";
 
 import FormCard from "app/base/components/FormCard";
-import FormCardButtons from "app/base/components/FormCardButtons";
 import BaseUserForm from "app/base/components/UserForm";
 import { useAddMessage, useWindowTitle } from "app/base/hooks";
 import { UserShape } from "app/base/proptypes";
+import settingsURLs from "app/settings/urls";
 import { actions as authActions } from "app/store/auth";
 import { actions as userActions } from "app/store/user";
 import userSelectors from "app/store/user/selectors";
@@ -43,7 +43,8 @@ export const UserForm = ({ user }: PropTypes): JSX.Element => {
   return (
     <FormCard title={title}>
       <BaseUserForm
-        buttons={FormCardButtons}
+        buttonsAlign="right"
+        buttonsBordered
         cleanup={userActions.cleanup}
         includeUserType
         submitLabel="Save user"
@@ -67,7 +68,7 @@ export const UserForm = ({ user }: PropTypes): JSX.Element => {
         onUpdateFields={(values) => {
           setName(values.username);
         }}
-        savedRedirect="/settings/users"
+        savedRedirect={settingsURLs.users.index}
         user={user}
       />
     </FormCard>

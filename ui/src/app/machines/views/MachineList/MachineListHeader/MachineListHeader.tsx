@@ -11,13 +11,12 @@ import AddHardware from "./AddHardwareMenu";
 import SectionHeader from "app/base/components/SectionHeader";
 import ActionFormWrapper from "app/machines/components/ActionFormWrapper";
 import TakeActionMenu from "app/machines/components/TakeActionMenu";
-import {
-  filtersToString,
-  getCurrentFilters,
-  toggleFilter,
-} from "app/machines/search";
-import type { SetSelectedAction } from "app/machines/views/MachineDetails/types";
-import type { MachineAction } from "app/store/general/types";
+import machineURLs from "app/machines/urls";
+import type {
+  MachineSelectedAction,
+  MachineSetSelectedAction,
+} from "app/machines/views/types";
+import poolsURLs from "app/pools/urls";
 import { actions as machineActions } from "app/store/machine";
 import machineSelectors from "app/store/machine/selectors";
 import type { Machine } from "app/store/machine/types";
@@ -50,14 +49,12 @@ const getMachineCount = (
 };
 
 type Props = {
-  searchFilter?: string;
-  selectedAction?: MachineAction;
+  selectedAction?: MachineSelectedAction | null;
   setSearchFilter: (filter: string) => void;
-  setSelectedAction: SetSelectedAction;
+  setSelectedAction: MachineSetSelectedAction;
 };
 
 export const MachineListHeader = ({
-  searchFilter,
   selectedAction,
   setSearchFilter,
   setSelectedAction,
@@ -75,28 +72,13 @@ export const MachineListHeader = ({
   }, [dispatch]);
 
   useEffect(() => {
-    if (location.pathname !== "/machines") {
+    if (location.pathname !== machineURLs.machines.index) {
       setSelectedAction(null);
     }
   }, [location.pathname, setSelectedAction]);
 
-  const setAction = (action: MachineAction, deselect?: boolean) => {
-    if (action || deselect) {
-      const filters = getCurrentFilters(searchFilter);
-      const newFilters = toggleFilter(
-        filters,
-        "in",
-        "selected",
-        false,
-        !deselect
-      );
-      setSearchFilter(filtersToString(newFilters));
-    }
-    setSelectedAction(action);
-  };
-
   const getHeaderButtons = () => {
-    if (location.pathname === "/machines") {
+    if (location.pathname === machineURLs.machines.index) {
       return [
         <AddHardware
           disabled={selectedMachines.length > 0}
@@ -104,13 +86,13 @@ export const MachineListHeader = ({
         />,
         <TakeActionMenu
           key="machine-list-action-menu"
-          setSelectedAction={setAction}
+          setSelectedAction={setSelectedAction}
         />,
       ];
     }
-    if (location.pathname === "/pools") {
+    if (location.pathname === poolsURLs.pools) {
       return [
-        <Button data-test="add-pool" element={Link} to="/pools/add">
+        <Button data-test="add-pool" element={Link} to={poolsURLs.add}>
           Add pool
         </Button>,
       ];
@@ -125,7 +107,7 @@ export const MachineListHeader = ({
         selectedAction && (
           <ActionFormWrapper
             selectedAction={selectedAction}
-            setSelectedAction={setAction}
+            setSelectedAction={setSelectedAction}
           />
         )
       }
@@ -133,16 +115,16 @@ export const MachineListHeader = ({
       subtitle={getMachineCount(machines, selectedMachines, setSearchFilter)}
       tabLinks={[
         {
-          active: location.pathname.startsWith("/machines"),
+          active: location.pathname.startsWith(machineURLs.machines.index),
           component: Link,
           label: `${pluralize("Machine", machines.length, true)}`,
-          to: "/machines",
+          to: machineURLs.machines.index,
         },
         {
-          active: location.pathname.startsWith("/pool"),
+          active: location.pathname.startsWith(poolsURLs.pools),
           component: Link,
           label: `${pluralize("Resource pool", resourcePools.length, true)}`,
-          to: "/pools",
+          to: poolsURLs.pools,
         },
       ]}
       title="Machines"

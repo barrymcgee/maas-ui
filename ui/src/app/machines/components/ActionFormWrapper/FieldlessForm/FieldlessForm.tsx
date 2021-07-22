@@ -2,13 +2,11 @@ import { usePrevious } from "@canonical/react-components/dist/hooks";
 import { useDispatch, useSelector } from "react-redux";
 import { Redirect } from "react-router-dom";
 
-import type { Props as ActionFormProps } from "app/base/components/ActionForm";
 import ActionForm from "app/base/components/ActionForm";
+import type { ClearSelectedAction, EmptyObject } from "app/base/types";
 import { useMachineActionForm } from "app/machines/hooks";
-import type {
-  SelectedAction,
-  SetSelectedAction,
-} from "app/machines/views/MachineDetails/types";
+import machineURLs from "app/machines/urls";
+import type { MachineSelectedAction } from "app/machines/views/types";
 import { actions as machineActions } from "app/store/machine";
 import machineSelectors from "app/store/machine/selectors";
 import { NodeActions } from "app/store/types/node";
@@ -32,15 +30,15 @@ const fieldlessActions = [
 ];
 
 type Props = {
-  actionDisabled?: ActionFormProps["actionDisabled"];
-  selectedAction: SelectedAction;
-  setSelectedAction: SetSelectedAction;
+  actionDisabled?: boolean;
+  selectedAction: MachineSelectedAction;
+  clearSelectedAction: ClearSelectedAction;
 };
 
 export const FieldlessForm = ({
   actionDisabled,
   selectedAction,
-  setSelectedAction,
+  clearSelectedAction,
 }: Props): JSX.Element => {
   const dispatch = useDispatch();
   const activeMachine = useSelector(machineSelectors.active);
@@ -56,17 +54,18 @@ export const FieldlessForm = ({
   // return an error.
   if (previousIsDeletingMachine && !isDeletingMachine && !errors) {
     // The machine was just deleted so redirect to the machine list.
-    return <Redirect to="/machines" />;
+    return <Redirect to={machineURLs.machines.index} />;
   }
 
   return (
-    <ActionForm
+    <ActionForm<EmptyObject>
       actionDisabled={actionDisabled}
       actionName={selectedAction.name}
       allowUnchanged
       cleanup={machineActions.cleanup}
-      clearSelectedAction={() => setSelectedAction(null, true)}
+      clearSelectedAction={clearSelectedAction}
       errors={errors}
+      initialValues={{}}
       modelName="machine"
       onSaveAnalytics={{
         action: "Submit",
@@ -76,9 +75,16 @@ export const FieldlessForm = ({
       onSubmit={() => {
         if (fieldlessActions.includes(selectedAction.name)) {
           const actionMethod = kebabToCamelCase(selectedAction.name);
-          machinesToAction.forEach((machine) => {
-            dispatch(machineActions[actionMethod](machine.system_id));
-          });
+          // Find the method for the function.
+          const [, actionFunction] =
+            Object.entries(machineActions).find(
+              ([key]) => key === actionMethod
+            ) || [];
+          if (actionFunction) {
+            machinesToAction.forEach((machine) => {
+              dispatch(actionFunction(machine.system_id));
+            });
+          }
         }
       }}
       processingCount={processingCount}

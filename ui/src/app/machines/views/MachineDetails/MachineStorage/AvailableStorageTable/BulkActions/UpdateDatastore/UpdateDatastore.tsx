@@ -4,13 +4,16 @@ import * as Yup from "yup";
 import UpdateDatastoreFields from "./UpdateDatastoreFields";
 
 import FormCard from "app/base/components/FormCard";
-import FormCardButtons from "app/base/components/FormCardButtons";
 import FormikForm from "app/base/components/FormikForm";
 import { useMachineDetailsForm } from "app/machines/hooks";
 import { actions as machineActions } from "app/store/machine";
 import machineSelectors from "app/store/machine/selectors";
 import type { Disk, Machine, Partition } from "app/store/machine/types";
-import { isDatastore, splitDiskPartitionIds } from "app/store/machine/utils";
+import {
+  isDatastore,
+  isMachineDetails,
+  splitDiskPartitionIds,
+} from "app/store/machine/utils";
 import type { RootState } from "app/store/root/types";
 
 export type UpdateDatastoreValues = {
@@ -43,7 +46,7 @@ export const UpdateDatastore = ({
     () => closeForm()
   );
 
-  if (machine && "disks" in machine) {
+  if (isMachineDetails(machine)) {
     const datastores = machine.disks.filter((disk) =>
       isDatastore(disk.filesystem)
     );
@@ -57,9 +60,8 @@ export const UpdateDatastore = ({
 
     return (
       <FormCard sidebar={false}>
-        <FormikForm
+        <FormikForm<UpdateDatastoreValues>
           allowUnchanged
-          buttons={FormCardButtons}
           cleanup={machineActions.cleanup}
           errors={errors}
           initialValues={{
@@ -72,9 +74,8 @@ export const UpdateDatastore = ({
             label: "Add to datastore",
           }}
           onSubmit={(values: UpdateDatastoreValues) => {
-            const [blockDeviceIds, partitionIds] = splitDiskPartitionIds(
-              selected
-            );
+            const [blockDeviceIds, partitionIds] =
+              splitDiskPartitionIds(selected);
             const params = {
               systemId,
               vmfsDatastoreId: values.datastore,

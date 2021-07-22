@@ -3,12 +3,12 @@ import type { NetworkValues } from "../NetworkFields/NetworkFields";
 import type {
   NetworkInterface,
   NetworkInterfaceParams,
-} from "app/store/machine/types";
+} from "app/store/types/node";
 
 export type BridgeFormValues = {
-  bridge_fd?: NetworkInterfaceParams["bridge_fd"];
+  bridge_fd?: NetworkInterfaceParams["bridge_fd"] | "";
   bridge_stp?: NetworkInterfaceParams["bridge_stp"];
-  bridge_type: NetworkInterfaceParams["bridge_type"];
+  bridge_type: NetworkInterfaceParams["bridge_type"] | "";
   mac_address: NetworkInterface["mac_address"];
   name: NetworkInterface["name"];
   tags?: NetworkInterface["tags"];

@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 
-import PropTypes from "prop-types";
 import { useDispatch, useSelector } from "react-redux";
 import * as Yup from "yup";
 
@@ -8,8 +7,8 @@ import TestFormFields from "./TestFormFields";
 
 import ActionForm from "app/base/components/ActionForm";
 import type { HardwareType } from "app/base/enum";
+import type { ClearSelectedAction } from "app/base/types";
 import { useMachineActionForm } from "app/machines/hooks";
-import type { MachineAction } from "app/store/general/types";
 import { actions as machineActions } from "app/store/machine";
 import machineSelectors from "app/store/machine/selectors";
 import { actions as scriptActions } from "app/store/script";
@@ -36,22 +35,22 @@ export type FormValues = {
   enableSSH: boolean;
   scripts: Script[];
   scriptInputs: {
-    "internet-connectivity": { url: string };
+    [x: string]: { url: string };
   };
 };
 
 type Props = {
   actionDisabled?: boolean;
-  setSelectedAction: (action: MachineAction | null, deselect?: boolean) => void;
-  hardwareType?: HardwareType;
   applyConfiguredNetworking?: Script["apply_configured_networking"];
+  hardwareType?: HardwareType;
+  clearSelectedAction: ClearSelectedAction;
 };
 
 export const TestForm = ({
   actionDisabled,
-  setSelectedAction,
-  hardwareType,
   applyConfiguredNetworking,
+  hardwareType,
+  clearSelectedAction,
 }: Props): JSX.Element => {
   const dispatch = useDispatch();
   const activeMachine = useSelector(machineSelectors.active);
@@ -106,12 +105,12 @@ export const TestForm = ({
   }, [dispatch, scriptsLoaded]);
 
   return (
-    <ActionForm
+    <ActionForm<FormValues>
       actionDisabled={actionDisabled}
       actionName={NodeActions.TEST}
       allowUnchanged
       cleanup={machineActions.cleanup}
-      clearSelectedAction={() => setSelectedAction(null, true)}
+      clearSelectedAction={clearSelectedAction}
       errors={errors}
       initialValues={{
         enableSSH: false,
@@ -125,16 +124,16 @@ export const TestForm = ({
         category: `Machine ${activeMachine ? "details" : "list"} action form`,
         label: "Test",
       }}
-      onSubmit={(values: FormValues) => {
+      onSubmit={(values) => {
         const { enableSSH, scripts, scriptInputs } = values;
         machinesToAction.forEach((machine) => {
           dispatch(
-            machineActions.test(
-              machine.system_id,
+            machineActions.test({
+              systemId: machine.system_id,
               scripts,
               enableSSH,
-              scriptInputs
-            )
+              scriptInputs,
+            })
           );
         });
       }}
@@ -145,10 +144,6 @@ export const TestForm = ({
       <TestFormFields preselected={preselected} scripts={formattedScripts} />
     </ActionForm>
   );
-};
-
-TestForm.propTypes = {
-  setSelectedAction: PropTypes.func.isRequired,
 };
 
 export default TestForm;

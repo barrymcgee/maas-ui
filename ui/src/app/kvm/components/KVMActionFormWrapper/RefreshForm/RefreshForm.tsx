@@ -3,15 +3,15 @@ import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import ActionForm from "app/base/components/ActionForm";
-import type { SetSelectedAction } from "app/kvm/views/KVMDetails";
+import type { ClearSelectedAction, EmptyObject } from "app/base/types";
 import { actions as podActions } from "app/store/pod";
 import podSelectors from "app/store/pod/selectors";
 
 type Props = {
-  setSelectedAction: SetSelectedAction;
+  clearSelectedAction: ClearSelectedAction;
 };
 
-const RefreshForm = ({ setSelectedAction }: Props): JSX.Element | null => {
+const RefreshForm = ({ clearSelectedAction }: Props): JSX.Element | null => {
   const dispatch = useDispatch();
   const activePod = useSelector(podSelectors.active);
   const errors = useSelector(podSelectors.errors);
@@ -20,11 +20,12 @@ const RefreshForm = ({ setSelectedAction }: Props): JSX.Element | null => {
 
   if (activePod) {
     return (
-      <ActionForm
+      <ActionForm<EmptyObject>
         actionName="refresh"
         cleanup={cleanup}
-        clearSelectedAction={() => setSelectedAction(null)}
+        clearSelectedAction={clearSelectedAction}
         errors={errors}
+        initialValues={{}}
         modelName="KVM"
         onSaveAnalytics={{
           action: "Submit",

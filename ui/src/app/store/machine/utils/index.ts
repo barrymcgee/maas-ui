@@ -1,3 +1,5 @@
+export { isMachineDetails } from "./common";
+
 export {
   useCanAddVLAN,
   useCanEdit,
@@ -38,6 +40,12 @@ export {
   isInterfaceConnected,
 } from "./networking";
 
+export {
+  FilterMachines,
+  getMachineValue,
+  WORKLOAD_FILTER_PREFIX,
+} from "./search";
+
 export { isTransientStatus } from "./status";
 
 export {
@@ -57,6 +65,7 @@ export {
   formatSize,
   formatType,
   getDiskById,
+  getNextStorageName,
   getPartitionById,
   isBcache,
   isCacheSet,

@@ -1,4 +1,5 @@
 import { actions } from "./slice";
+import { UserMeta } from "./types";
 
 describe("user actions", () => {
   it("returns a fetch action", () => {
@@ -13,7 +14,14 @@ describe("user actions", () => {
   });
 
   it("returns a create action", () => {
-    expect(actions.create({ name: "user1", description: "a user" })).toEqual({
+    expect(
+      actions.create({
+        username: "user1",
+        email: "a@user.com",
+        password1: "seCr3t",
+        password2: "seCr3t",
+      })
+    ).toEqual({
       type: "user/create",
       meta: {
         model: "user",
@@ -21,25 +29,26 @@ describe("user actions", () => {
       },
       payload: {
         params: {
-          name: "user1",
-          description: "a user",
+          username: "user1",
+          email: "a@user.com",
+          password1: "seCr3t",
+          password2: "seCr3t",
         },
       },
     });
   });
 
   it("returns an update action", () => {
-    expect(actions.update({ name: "user1", description: "a user" })).toEqual({
+    expect(
+      actions.update({ id: 1, username: "user1", email: "a@user.com" })
+    ).toEqual({
       type: "user/update",
       meta: {
         model: "user",
         method: "update",
       },
       payload: {
-        params: {
-          name: "user1",
-          description: "a user",
-        },
+        params: { id: 1, username: "user1", email: "a@user.com" },
       },
     });
   });
@@ -63,6 +72,17 @@ describe("user actions", () => {
     expect(actions.cleanup()).toEqual({
       type: "user/cleanup",
       payload: undefined,
+    });
+  });
+
+  it("creates a markIntroComplete action", () => {
+    expect(actions.markIntroComplete()).toEqual({
+      meta: {
+        model: UserMeta.MODEL,
+        method: "mark_intro_complete",
+      },
+      payload: null,
+      type: "user/markIntroComplete",
     });
   });
 });

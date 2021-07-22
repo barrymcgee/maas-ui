@@ -26,7 +26,17 @@ describe("ReleaseForm", () => {
   let state: RootState;
   beforeEach(() => {
     state = rootStateFactory({
-      config: configStateFactory({ loaded: true }),
+      config: configStateFactory({
+        loaded: true,
+        items: [
+          configFactory({
+            name: "enable_disk_erasing_on_release",
+            value: false,
+          }),
+          configFactory({ name: "disk_erase_with_secure_erase", value: false }),
+          configFactory({ name: "disk_erase_with_quick_erase", value: false }),
+        ],
+      }),
       general: generalStateFactory({
         machineActions: machineActionsStateFactory({
           data: [
@@ -65,7 +75,7 @@ describe("ReleaseForm", () => {
         <MemoryRouter
           initialEntries={[{ pathname: "/machines", key: "testKey" }]}
         >
-          <ReleaseForm setSelectedAction={jest.fn()} />
+          <ReleaseForm clearSelectedAction={jest.fn()} />
         </MemoryRouter>
       </Provider>
     );
@@ -83,7 +93,7 @@ describe("ReleaseForm", () => {
         <MemoryRouter
           initialEntries={[{ pathname: "/machines", key: "testKey" }]}
         >
-          <ReleaseForm setSelectedAction={jest.fn()} />
+          <ReleaseForm clearSelectedAction={jest.fn()} />
         </MemoryRouter>
       </Provider>
     );
@@ -150,7 +160,7 @@ describe("ReleaseForm", () => {
           <Route
             exact
             path="/machine/:id"
-            component={() => <ReleaseForm setSelectedAction={jest.fn()} />}
+            component={() => <ReleaseForm clearSelectedAction={jest.fn()} />}
           />
         </MemoryRouter>
       </Provider>

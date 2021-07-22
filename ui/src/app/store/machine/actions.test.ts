@@ -1,9 +1,17 @@
 import { actions } from "./slice";
-import { NetworkLinkMode } from "./types";
+import { DiskTypes, StorageLayout } from "./types";
 
-import { BondMode, BondXmitHashPolicy } from "app/store/general/types";
-import { BridgeType } from "app/store/machine/types";
+import {
+  BondLacpRate,
+  BondMode,
+  BondXmitHashPolicy,
+} from "app/store/general/types";
+import { BridgeType, NetworkLinkMode } from "app/store/types/enum";
 import { NodeActions } from "app/store/types/node";
+import {
+  script as scriptFactory,
+  scriptResult as scriptResultFactory,
+} from "testing/factories";
 
 describe("machine actions", () => {
   it("should handle fetching machines", () => {
@@ -49,7 +57,12 @@ describe("machine actions", () => {
 
   it("can handle creating machines", () => {
     expect(
-      actions.create({ name: "machine1", description: "a machine" })
+      actions.create({
+        hostname: "machine1",
+        description: "a machine",
+        extra_macs: [],
+        pxe_mac: "",
+      })
     ).toEqual({
       type: "machine/create",
       meta: {
@@ -58,15 +71,49 @@ describe("machine actions", () => {
       },
       payload: {
         params: {
-          name: "machine1",
+          hostname: "machine1",
           description: "a machine",
+          extra_macs: [],
+          pxe_mac: "",
+        },
+      },
+    });
+  });
+
+  it("can handle updating machines", () => {
+    expect(
+      actions.update({
+        system_id: "abc123",
+        hostname: "machine1",
+        description: "a machine",
+        extra_macs: [],
+        pxe_mac: "",
+      })
+    ).toEqual({
+      type: "machine/update",
+      meta: {
+        model: "machine",
+        method: "update",
+      },
+      payload: {
+        params: {
+          system_id: "abc123",
+          hostname: "machine1",
+          description: "a machine",
+          extra_macs: [],
+          pxe_mac: "",
         },
       },
     });
   });
 
   it("can handle setting the pool", () => {
-    expect(actions.setPool("abc123", 909)).toEqual({
+    expect(
+      actions.setPool({
+        systemId: "abc123",
+        poolId: 909,
+      })
+    ).toEqual({
       type: "machine/setPool",
       meta: {
         model: "machine",
@@ -85,7 +132,7 @@ describe("machine actions", () => {
   });
 
   it("can handle setting the zone", () => {
-    expect(actions.setZone("abc123", 909)).toEqual({
+    expect(actions.setZone({ systemId: "abc123", zoneId: 909 })).toEqual({
       type: "machine/setZone",
       meta: {
         model: "machine",
@@ -171,10 +218,13 @@ describe("machine actions", () => {
 
   it("can handle releasing a machine", () => {
     expect(
-      actions.release("abc123", {
-        enable_erase: true,
-        quick_erase: false,
-        secure_erase: true,
+      actions.release({
+        systemId: "abc123",
+        extra: {
+          erase: true,
+          quick_erase: false,
+          secure_erase: true,
+        },
       })
     ).toEqual({
       type: "machine/release",
@@ -185,7 +235,7 @@ describe("machine actions", () => {
       payload: {
         params: {
           action: NodeActions.RELEASE,
-          extra: { enable_erase: true, quick_erase: false, secure_erase: true },
+          extra: { erase: true, quick_erase: false, secure_erase: true },
           system_id: "abc123",
         },
       },
@@ -196,9 +246,10 @@ describe("machine actions", () => {
     const extra = {
       osystem: "ubuntu",
       distro_series: "bionic",
+      hwe_kernel: "ga-16.04",
       install_kvm: false,
     };
-    expect(actions.deploy("abc123", extra)).toEqual({
+    expect(actions.deploy({ systemId: "abc123", extra })).toEqual({
       type: "machine/deploy",
       meta: {
         model: "machine",
@@ -215,7 +266,9 @@ describe("machine actions", () => {
   });
 
   it("can handle getting a summary XML file", () => {
-    expect(actions.getSummaryXml("abc123", "file1")).toEqual({
+    expect(
+      actions.getSummaryXml({ systemId: "abc123", fileId: "file1" })
+    ).toEqual({
       type: "machine/getSummaryXml",
       meta: {
         fileContextKey: "file1",
@@ -232,7 +285,9 @@ describe("machine actions", () => {
   });
 
   it("can handle getting a summary YAML file", () => {
-    expect(actions.getSummaryYaml("abc123", "file1")).toEqual({
+    expect(
+      actions.getSummaryYaml({ systemId: "abc123", fileId: "file1" })
+    ).toEqual({
       type: "machine/getSummaryYaml",
       meta: {
         fileContextKey: "file1",
@@ -267,24 +322,24 @@ describe("machine actions", () => {
 
   it("can handle commissioning a machine", () => {
     expect(
-      actions.commission(
-        "abc123",
-        true,
-        false,
-        false,
-        false,
-        true,
-        true,
-        [
-          { id: 0, name: "commissioningScript0" },
-          { id: 2, name: "commissioningScript2" },
+      actions.commission({
+        systemId: "abc123",
+        enableSSH: true,
+        skipBMCConfig: false,
+        skipNetworking: false,
+        skipStorage: false,
+        updateFirmware: true,
+        configureHBA: true,
+        commissioningScripts: [
+          scriptFactory({ id: 0, name: "commissioningScript0" }),
+          scriptFactory({ id: 2, name: "commissioningScript2" }),
         ],
-        [
-          { id: 0, name: "testingScript0" },
-          { id: 2, name: "testScript2" },
+        testingScripts: [
+          scriptFactory({ id: 0, name: "testingScript0" }),
+          scriptFactory({ id: 2, name: "testScript2" }),
         ],
-        { testingScript0: { url: "www.url.com" } }
-      )
+        scriptInputs: { testingScript0: { url: "www.url.com" } },
+      })
     ).toEqual({
       meta: {
         method: "action",
@@ -311,15 +366,15 @@ describe("machine actions", () => {
 
   it("can handle testing a machine", () => {
     expect(
-      actions.test(
-        "abc123",
-        [
-          { id: 0, name: "test0" },
-          { id: 2, name: "test2" },
+      actions.test({
+        systemId: "abc123",
+        scripts: [
+          scriptFactory({ id: 0, name: "test0" }),
+          scriptFactory({ id: 2, name: "test2" }),
         ],
-        true,
-        { "test-0": { url: "www.url.com" } }
-      )
+        enableSSH: true,
+        scriptInputs: { "test-0": { url: "www.url.com" } },
+      })
     ).toEqual({
       type: "machine/test",
       meta: {
@@ -342,9 +397,9 @@ describe("machine actions", () => {
 
   it("can create a suppress script results action", () => {
     expect(
-      actions.suppressScriptResults(0, [
-        { id: 0, name: "script0" },
-        { id: 2, name: "script2" },
+      actions.suppressScriptResults("abc123", [
+        scriptResultFactory({ id: 0, name: "script0" }),
+        scriptResultFactory({ id: 2, name: "script2" }),
       ])
     ).toEqual({
       meta: {
@@ -354,7 +409,7 @@ describe("machine actions", () => {
       payload: {
         params: {
           script_result_ids: [0, 2],
-          system_id: 0,
+          system_id: "abc123",
         },
       },
       type: "machine/suppressScriptResults",
@@ -396,7 +451,9 @@ describe("machine actions", () => {
   });
 
   it("can handle marking a machine as broken", () => {
-    expect(actions.markBroken("abc123", "machine is on fire")).toEqual({
+    expect(
+      actions.markBroken({ systemId: "abc123", message: "machine is on fire" })
+    ).toEqual({
       type: "machine/markBroken",
       meta: {
         model: "machine",
@@ -500,24 +557,31 @@ describe("machine actions", () => {
   });
 
   it("can handle tagging a machine", () => {
-    expect(actions.tag("abc123", ["tag1", "tag2"])).toEqual({
-      type: "machine/tag",
-      meta: {
-        model: "machine",
-        method: "action",
-      },
-      payload: {
-        params: {
-          action: NodeActions.TAG,
-          extra: { tags: ["tag1", "tag2"] },
-          system_id: "abc123",
+    expect(actions.tag({ systemId: "abc123", tags: ["tag1", "tag2"] })).toEqual(
+      {
+        type: "machine/tag",
+        meta: {
+          model: "machine",
+          method: "action",
         },
-      },
-    });
+        payload: {
+          params: {
+            action: NodeActions.TAG,
+            extra: { tags: ["tag1", "tag2"] },
+            system_id: "abc123",
+          },
+        },
+      }
+    );
   });
 
   it("can handle applying a machine's storage layout", () => {
-    expect(actions.applyStorageLayout("abc123", "blank")).toEqual({
+    expect(
+      actions.applyStorageLayout({
+        systemId: "abc123",
+        storageLayout: StorageLayout.BLANK,
+      })
+    ).toEqual({
       type: "machine/applyStorageLayout",
       meta: {
         model: "machine",
@@ -525,14 +589,14 @@ describe("machine actions", () => {
       },
       payload: {
         params: {
-          storage_layout: "blank",
+          storage_layout: StorageLayout.BLANK,
           system_id: "abc123",
         },
       },
     });
   });
 
-  it("can handle creating a bcache", () => {
+  it("can handle creating a bcache with all params", () => {
     expect(
       actions.createBcache({
         blockId: 1,
@@ -569,11 +633,36 @@ describe("machine actions", () => {
     });
   });
 
+  it("can handle creating a bcache with only required params", () => {
+    expect(
+      actions.createBcache({
+        cacheMode: "WRITEBACK",
+        cacheSetId: 2,
+        name: "bcache1",
+        systemId: "abc123",
+      })
+    ).toEqual({
+      type: "machine/createBcache",
+      meta: {
+        model: "machine",
+        method: "create_bcache",
+      },
+      payload: {
+        params: {
+          cache_mode: "WRITEBACK",
+          cache_set: 2,
+          name: "bcache1",
+          system_id: "abc123",
+        },
+      },
+    });
+  });
+
   it("can handle creating a bond", () => {
     expect(
       actions.createBond({
         bond_downdelay: 1,
-        bond_lacp_rate: 2,
+        bond_lacp_rate: BondLacpRate.SLOW,
         bond_miimon: 3,
         bond_mode: BondMode.ACTIVE_BACKUP,
         bond_num_grat_arp: 4,
@@ -599,7 +688,7 @@ describe("machine actions", () => {
       payload: {
         params: {
           bond_downdelay: 1,
-          bond_lacp_rate: 2,
+          bond_lacp_rate: BondLacpRate.SLOW,
           bond_miimon: 3,
           bond_mode: BondMode.ACTIVE_BACKUP,
           bond_num_grat_arp: 4,
@@ -625,7 +714,7 @@ describe("machine actions", () => {
       actions.createBridge({
         bridge_fd: 2,
         bridge_stp: true,
-        bridge_type: BridgeType,
+        bridge_type: BridgeType.STANDARD,
         interface_speed: 5,
         link_connected: true,
         link_speed: 10,
@@ -647,7 +736,7 @@ describe("machine actions", () => {
         params: {
           bridge_fd: 2,
           bridge_stp: true,
-          bridge_type: BridgeType,
+          bridge_type: BridgeType.STANDARD,
           interface_speed: 5,
           link_connected: true,
           link_speed: 10,
@@ -663,7 +752,7 @@ describe("machine actions", () => {
     });
   });
 
-  it("can handle creating a cache set", () => {
+  it("can handle creating a cache set with all params", () => {
     expect(
       actions.createCacheSet({
         blockId: 1,
@@ -686,7 +775,26 @@ describe("machine actions", () => {
     });
   });
 
-  it("can handle creating a logical volume", () => {
+  it("can handle creating a cache set with only required params", () => {
+    expect(
+      actions.createCacheSet({
+        systemId: "abc123",
+      })
+    ).toEqual({
+      type: "machine/createCacheSet",
+      meta: {
+        model: "machine",
+        method: "create_cache_set",
+      },
+      payload: {
+        params: {
+          system_id: "abc123",
+        },
+      },
+    });
+  });
+
+  it("can handle creating a logical volume with all values", () => {
     expect(
       actions.createLogicalVolume({
         fstype: "fat32",
@@ -713,6 +821,31 @@ describe("machine actions", () => {
           size: 1000,
           system_id: "abc123",
           tags: ["tag1", "tag2"],
+          volume_group_id: 1,
+        },
+      },
+    });
+  });
+
+  it("can handle creating a logical volume with only required values", () => {
+    expect(
+      actions.createLogicalVolume({
+        name: "logical-volume",
+        size: 1000,
+        systemId: "abc123",
+        volumeGroupId: 1,
+      })
+    ).toEqual({
+      type: "machine/createLogicalVolume",
+      meta: {
+        model: "machine",
+        method: "create_logical_volume",
+      },
+      payload: {
+        params: {
+          name: "logical-volume",
+          size: 1000,
+          system_id: "abc123",
           volume_group_id: 1,
         },
       },
@@ -814,11 +947,12 @@ describe("machine actions", () => {
     });
   });
 
-  it("can handle creating a RAID", () => {
+  it("can handle creating a RAID with all values", () => {
     expect(
       actions.createRaid({
         blockDeviceIds: [1, 2],
-        level: "raid-0",
+        fstype: "tmpfs",
+        level: DiskTypes.RAID_0,
         mountOptions: "noexec",
         mountPoint: "/path",
         name: "raid1",
@@ -837,6 +971,7 @@ describe("machine actions", () => {
       payload: {
         params: {
           block_devices: [1, 2],
+          fstype: "tmpfs",
           level: "raid-0",
           mount_options: "noexec",
           mount_point: "/path",
@@ -851,6 +986,29 @@ describe("machine actions", () => {
     });
   });
 
+  it("can handle creating a RAID with only required values", () => {
+    expect(
+      actions.createRaid({
+        level: DiskTypes.RAID_0,
+        name: "raid1",
+        systemId: "abc123",
+      })
+    ).toEqual({
+      type: "machine/createRaid",
+      meta: {
+        model: "machine",
+        method: "create_raid",
+      },
+      payload: {
+        params: {
+          level: "raid-0",
+          name: "raid1",
+          system_id: "abc123",
+        },
+      },
+    });
+  });
+
   it("can handle creating a vlan", () => {
     expect(
       actions.createVlan({
@@ -859,6 +1017,7 @@ describe("machine actions", () => {
         link_connected: true,
         link_speed: 10,
         mode: NetworkLinkMode.AUTO,
+        parent: 1,
         system_id: "abc123",
         tags: ["koala", "tag"],
         vlan: 9,
@@ -876,6 +1035,7 @@ describe("machine actions", () => {
           link_connected: true,
           link_speed: 10,
           mode: NetworkLinkMode.AUTO,
+          parent: 1,
           system_id: "abc123",
           tags: ["koala", "tag"],
           vlan: 9,
@@ -884,7 +1044,7 @@ describe("machine actions", () => {
     });
   });
 
-  it("can handle creating a VMFS datastore", () => {
+  it("can handle creating a VMFS datastore with all params", () => {
     expect(
       actions.createVmfsDatastore({
         blockDeviceIds: [1, 2],
@@ -903,6 +1063,27 @@ describe("machine actions", () => {
           block_devices: [1, 2],
           name: "datastore1",
           partitions: [3, 4],
+          system_id: "abc123",
+        },
+      },
+    });
+  });
+
+  it("can handle creating a VMFS datastore with only required params", () => {
+    expect(
+      actions.createVmfsDatastore({
+        name: "datastore1",
+        systemId: "abc123",
+      })
+    ).toEqual({
+      type: "machine/createVmfsDatastore",
+      meta: {
+        model: "machine",
+        method: "create_vmfs_datastore",
+      },
+      payload: {
+        params: {
+          name: "datastore1",
           system_id: "abc123",
         },
       },
@@ -976,7 +1157,7 @@ describe("machine actions", () => {
     });
   });
 
-  it("can handle deleting a filesystem", () => {
+  it("can handle deleting a filesystem with all params", () => {
     expect(
       actions.deleteFilesystem({
         blockDeviceId: 1,
@@ -995,6 +1176,27 @@ describe("machine actions", () => {
           blockdevice_id: 1,
           filesystem_id: 2,
           partition_id: 3,
+          system_id: "abc123",
+        },
+      },
+    });
+  });
+
+  it("can handle deleting a filesystem with only required params", () => {
+    expect(
+      actions.deleteFilesystem({
+        filesystemId: 2,
+        systemId: "abc123",
+      })
+    ).toEqual({
+      type: "machine/deleteFilesystem",
+      meta: {
+        model: "machine",
+        method: "delete_filesystem",
+      },
+      payload: {
+        params: {
+          filesystem_id: 2,
           system_id: "abc123",
         },
       },
@@ -1183,7 +1385,7 @@ describe("machine actions", () => {
     });
   });
 
-  it("can handle updating a disk", () => {
+  it("can handle updating a disk with all params", () => {
     expect(
       actions.updateDisk({
         blockId: 1,
@@ -1214,7 +1416,28 @@ describe("machine actions", () => {
     });
   });
 
-  it("can handle updating a filesystem", () => {
+  it("can handle updating a disk with only required params", () => {
+    expect(
+      actions.updateDisk({
+        blockId: 1,
+        systemId: "abc123",
+      })
+    ).toEqual({
+      type: "machine/updateDisk",
+      meta: {
+        model: "machine",
+        method: "update_disk",
+      },
+      payload: {
+        params: {
+          block_id: 1,
+          system_id: "abc123",
+        },
+      },
+    });
+  });
+
+  it("can handle updating a filesystem with all params", () => {
     expect(
       actions.updateFilesystem({
         blockId: 1,
@@ -1240,6 +1463,25 @@ describe("machine actions", () => {
           partition_id: 2,
           system_id: "abc123",
           tags: ["tag1", "tag2"],
+        },
+      },
+    });
+  });
+
+  it("can handle updating a filesystem with only required params", () => {
+    expect(
+      actions.updateFilesystem({
+        systemId: "abc123",
+      })
+    ).toEqual({
+      type: "machine/updateFilesystem",
+      meta: {
+        model: "machine",
+        method: "update_filesystem",
+      },
+      payload: {
+        params: {
+          system_id: "abc123",
         },
       },
     });

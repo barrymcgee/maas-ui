@@ -729,6 +729,36 @@ describe("NodesListController", function () {
         });
       });
 
+      describe("actionSubmitDisabled", function () {
+        it("is disabled when there are no selected tags", function () {
+          makeController();
+          $scope.tabs[tab].actionOption = { name: "tag" };
+          $scope.tags = [];
+          expect($scope.actionSubmitDisabled(tab)).toBe(true);
+        });
+
+        it("is not disabled when there are selected tags", function () {
+          makeController();
+          $scope.tabs[tab].actionOption = { name: "tag" };
+          $scope.tags = ["tag"];
+          expect($scope.actionSubmitDisabled(tab)).toBe(false);
+        });
+
+        it("is disabled when there are no selected zones", function () {
+          makeController();
+          $scope.tabs[tab].actionOption = { name: "set-zone" };
+          $scope.tabs[tab].zoneSelection = null;
+          expect($scope.actionSubmitDisabled(tab)).toBe(true);
+        });
+
+        it("is not disabled when there are selected zones", function () {
+          makeController();
+          $scope.tabs[tab].actionOption = { name: "set-zone" };
+          $scope.tabs[tab].zoneSelection = { id: 1 };
+          expect($scope.actionSubmitDisabled(tab)).toBe(false);
+        });
+      });
+
       describe("isActionError", function () {
         it("returns true if actionErrorCount > 0", function () {
           makeController();
@@ -771,6 +801,22 @@ describe("NodesListController", function () {
           $scope.tabs[tab].testSelection = [];
           $scope.actionCancel(tab);
           expect($scope.tabs[tab].search).toBe("other");
+        });
+
+        it("restores the previous search", function () {
+          makeController();
+          $scope.tabs.controllers.previous_search = "a:filter";
+          $scope.tabs.controllers.search = "in:(Selected)";
+          $scope.actionCancel("controllers");
+          expect($scope.tabs.controllers.search).toBe("a:filter");
+        });
+
+        it("removes in:Selected from the previous search", function () {
+          makeController();
+          $scope.tabs.controllers.previous_search = "a:filter in:(Selected)";
+          $scope.tabs.controllers.search = "in:(Selected)";
+          $scope.actionCancel("controllers");
+          expect($scope.tabs.controllers.search).toBe("a:filter");
         });
 
         it("sets actionOption to null", function () {
@@ -1389,6 +1435,246 @@ describe("NodesListController", function () {
       expect(updatedParameters).toEqual({
         foo: { default: "https://example.com", value: "https://example.com" },
       });
+    });
+  });
+
+  describe("getVersions", () => {
+    it("can get controller versions", () => {
+      makeController();
+      const controller = {
+        versions: {
+          current: {
+            version: "1.2.3",
+          },
+          origin: "stable",
+          snap_cohort:
+            "MSBzaFkyMllUWjNSaEpKRE9qME1mbVNoVE5aVEViMUppcSAxNjE3MTgyOTcxIGJhM2VlYzQ2NDc5ZDdmNTI3NzIzNTUyMmRlOTc1MGIzZmNhYTI0MDE1MTQ3ZjVhM2ViNzQwZGZmYzk5OWFiYWU=",
+          update: {
+            version: "1.2.4",
+          },
+        },
+      };
+      expect($scope.getVersions(controller)).toStrictEqual({
+        origin: "stable",
+        cohortTooltip: `Cohort key: \nMSBzaFkyMllUWjNSaEpKRE9qME1mbVNoVE5aVEViM \nUppcSAxNjE3MTgyOTcxIGJhM2VlYzQ2NDc5ZDdmNT \nI3NzIzNTUyMmRlOTc1MGIzZmNhYTI0MDE1MTQ3ZjV \nhM2ViNzQwZGZmYzk5OWFiYWU=`,
+        current: "1.2.3",
+        isDeb: false,
+        issue: null,
+        upgrade: "1.2.4",
+      });
+    });
+
+    it("handles a controller without versions", () => {
+      makeController();
+      const controller = {};
+      expect($scope.getVersions(controller)).toStrictEqual({
+        origin: null,
+        cohortTooltip: null,
+        current: null,
+        isDeb: false,
+        issue: null,
+        upgrade: null,
+      });
+    });
+
+    it("handles a controller without current and update objects", () => {
+      makeController();
+      const controller = {
+        versions: {},
+      };
+      expect($scope.getVersions(controller)).toStrictEqual({
+        origin: null,
+        cohortTooltip: null,
+        current: null,
+        isDeb: false,
+        issue: null,
+        upgrade: null,
+      });
+    });
+
+    it("handles a controller without an current and update versions", () => {
+      makeController();
+      const controller = {
+        versions: {
+          current: {},
+          update: {},
+        },
+      };
+      expect($scope.getVersions(controller)).toStrictEqual({
+        origin: null,
+        cohortTooltip: null,
+        current: null,
+        isDeb: false,
+        issue: null,
+        upgrade: null,
+      });
+    });
+
+    it("can identify deb installs", () => {
+      makeController();
+      const controller = {
+        versions: {
+          install_type: "deb",
+        },
+      };
+      expect($scope.getVersions(controller).isDeb).toBe(true);
+    });
+
+    it("handles snap installs", () => {
+      makeController();
+      const controller = {
+        versions: {
+          install_type: "snap",
+        },
+      };
+      expect($scope.getVersions(controller).isDeb).toBe(false);
+    });
+
+    it("handles up to date controllers", () => {
+      makeController();
+      const controller = {
+        versions: {
+          up_to_date: true,
+        },
+      };
+      expect($scope.getVersions(controller).upgrade).toBe("Up-to-date");
+    });
+
+    it("handles no issues", () => {
+      makeController();
+      const controller = {
+        versions: {
+          issues: [],
+        },
+      };
+      expect($scope.getVersions(controller).issue).toBe(null);
+    });
+
+    it("handles the different cohort issue", () => {
+      makeController();
+      const controller = {
+        versions: {
+          issues: ["different-cohort"],
+        },
+      };
+      expect($scope.getVersions(controller).issue).toBe(
+        "Different cohort detected."
+      );
+    });
+
+    it("handles the different channel issue", () => {
+      makeController();
+      const controller = {
+        versions: {
+          issues: ["different-channel"],
+        },
+      };
+      expect($scope.getVersions(controller).issue).toBe(
+        "Different channel detected."
+      );
+    });
+
+    it("handles both the different channel and cohort issues", () => {
+      makeController();
+      const controller = {
+        versions: {
+          issues: ["different-channel", "different-cohort"],
+        },
+      };
+      expect($scope.getVersions(controller).issue).toBe(
+        "Different channel and cohort detected."
+      );
+    });
+  });
+
+  describe("getHaVlans", () => {
+    it("can display HA and non-HA VLANs", () => {
+      makeController();
+      const controller = {
+        vlans_ha: {
+          false: 5,
+          true: 2,
+        },
+      };
+      expect($scope.getHaVlans(controller)).toBe("Non-HA(5), HA(2)");
+    });
+
+    it("can display HA only VLANs", () => {
+      makeController();
+      const controller = {
+        vlans_ha: {
+          false: 0,
+          true: 2,
+        },
+      };
+      expect($scope.getHaVlans(controller)).toBe("HA(2)");
+    });
+
+    it("can display non-HA only VLANs", () => {
+      makeController();
+      const controller = {
+        vlans_ha: {
+          false: 5,
+          true: 0,
+        },
+      };
+      expect($scope.getHaVlans(controller)).toBe("Non-HA(5)");
+    });
+
+    it("can handle no HA or non-HA VLANs", () => {
+      makeController();
+      const controller = {
+        vlans_ha: {
+          false: 0,
+          true: 0,
+        },
+      };
+      expect($scope.getHaVlans(controller)).toBe(null);
+    });
+
+    it("can handle no HA VLAN info", () => {
+      makeController();
+      const controller = {};
+      expect($scope.getHaVlans(controller)).toBe(null);
+    });
+  });
+
+  describe("getVlanCount", () => {
+    it("can get the total amount of vlans", () => {
+      makeController();
+      const controller = {
+        vlans_ha: {
+          false: 5,
+          true: 2,
+        },
+      };
+      expect($scope.getVlanCount(controller)).toBe(7);
+    });
+
+    it("can get the total amount of vlans when only non-HA", () => {
+      makeController();
+      const controller = {
+        vlans_ha: {
+          false: 5,
+        },
+      };
+      expect($scope.getVlanCount(controller)).toBe(5);
+    });
+
+    it("can get the total amount of vlans when only HA", () => {
+      makeController();
+      const controller = {
+        vlans_ha: {
+          true: 2,
+        },
+      };
+      expect($scope.getVlanCount(controller)).toBe(2);
+    });
+
+    it("can get the total amount of vlans when there are no VLANs", () => {
+      makeController();
+      const controller = {};
+      expect($scope.getVlanCount(controller)).toBe(0);
     });
   });
 });
